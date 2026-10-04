@@ -2,7 +2,9 @@
 
 直向的人海對衝遊戲，做成可安裝的網頁 App（PWA）。不需要帳號，手機點開就能玩。
 
-傳給 LINE 上的朋友時，網址後面加 `?openExternalBrowser=1`，連結會用手機的瀏覽器開啟（LINE 內建瀏覽器不能安裝到主畫面）。遊戲裡的「分享給朋友」按鈕會自動加上。
+**線上遊玩：<https://wayuanzi-web.github.io/legion/>**
+
+傳給 LINE 上的朋友時，網址後面加 `?openExternalBrowser=1`（<https://wayuanzi-web.github.io/legion/?openExternalBrowser=1>），連結會用手機的瀏覽器開啟（LINE 內建瀏覽器不能安裝到主畫面）。遊戲裡的「分享給朋友」按鈕會自動加上。
 
 ## 玩法
 
@@ -33,7 +35,7 @@
 ## 修改與上線
 
 ```
-python3 src/build.py https://<帳號>.github.io/<repo>/    # 重新產生 index.html、sw.js、manifest
+python3 src/build.py https://wayuanzi-web.github.io/legion/    # 重新產生 index.html、sw.js、manifest
 git add -A && git commit -m "..." && git push
 ```
 
