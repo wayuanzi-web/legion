@@ -7,10 +7,11 @@
   const shareUrl = location.origin + location.pathname + '?openExternalBrowser=1';   // LINE 看到這個參數會改用手機瀏覽器開
   let deferred = null;
 
-  const row = document.createElement('div'); row.className = 'row';
-  row.innerHTML = '<button id="btnShare" class="btn"><span>分享給朋友</span></button><button id="btnInstall" class="btn"><span>安裝到主畫面</span></button>';
-  document.querySelector('#home .actions').appendChild(row);
-  if (standalone) { $('btnInstall').hidden = true; row.style.gridTemplateColumns = '1fr'; }
+  // 分享、安裝放在主畫面左右上角的小按鈕（十關的選單已經把下面排滿了）
+  const row = document.createElement('div'); row.className = 'webbar';
+  row.innerHTML = '<button id="btnShare" class="btn chip" aria-label="分享給朋友"><span>分享</span></button><button id="btnInstall" class="btn chip" aria-label="安裝到主畫面"><span>安裝</span></button>';
+  $('home').appendChild(row); $('home').classList.add('web');
+  if (standalone) $('btnInstall').hidden = true;
 
   const how = document.createElement('div'); how.id = 'how'; how.className = 'modal'; how.hidden = true;
   how.innerHTML = '<div class="plaque chamfer"><h2>安裝</h2><p class="tipline" id="howText"></p><button class="btn" id="howClose"><span>知道了</span></button></div>';
@@ -29,7 +30,7 @@
   });
 
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; });
-  window.addEventListener('appinstalled', () => { $('btnInstall').hidden = true; row.style.gridTemplateColumns = '1fr'; });
+  window.addEventListener('appinstalled', () => { $('btnInstall').hidden = true; });
   $('btnInstall').addEventListener('click', async () => {
     auInit(); sfx('click');
     if (deferred) { deferred.prompt(); try { await deferred.userChoice; } catch (e) { /* 使用者關掉了 */ } deferred = null; return; }

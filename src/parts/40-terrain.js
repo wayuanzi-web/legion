@@ -24,6 +24,31 @@ const THEMES = [
     abyss: ['#3a1a5e', '#22104a', '#0c0520'], road: '#73668a', roadFar: '#8a7ba6', band: 'rgba(20,0,40,.12)',
     plaza: '#7d7092', rim: '#43345a', rimDk: '#261a38', cliffT: '#57466e', cliffB: '#170d24', fade: '30,12,60',
     fort: ['#4d4162', '#2e2540', '#17111f'], deco: 4, sky: 'void'
+  },
+  { // 5 長虹橋：朝霞下的跨海石橋（行軍關的主題多了 deck／rail／arch 這幾組顏色）
+    abyss: ['#ffe2b8', '#62bcd6', '#1c68a8'], fade: '28,104,168', fort: ['#a9a69c', '#77746c', '#46443f'], deco: 0, sky: 'sea',
+    deck: ['#ddd5c0', '#c2b9a2'], curb: '#8b8270', lane: 'rgba(255,255,255,.16)', seam: [70, 58, 36, 46], rail: '#d23a2e', railDk: '#7a1712',
+    arch: ['#c8372c', '#2f8a7a', '#56606e', '#ffd35a'], islet: ['#8fd45a', '#57a332', '#a89a84', '#5c5347'], foam: [255, 255, 255, 60], seamGap: 4, post: 'rpost'
+  },
+  { // 6 連環寨：雲海上的楓紅山脊
+    abyss: ['#fff3da', '#f3c88f', '#c9773f'], road: '#e3cfa6', roadFar: '#efe0c2', band: 'rgba(140,80,30,.07)',
+    plaza: '#d8c6a2', rim: '#e58a3c', rimDk: '#a8521c', cliffT: '#b08a66', cliffB: '#5a3f2c', fade: '176,96,44',
+    fort: ['#a39a8c', '#6f675c', '#433d36'], deco: 5, sky: 'mist'
+  },
+  { // 7 寒江鐵索橋：夜裡的木板吊橋
+    abyss: ['#33507e', '#1c3560', '#0a1730'], fade: '14,30,60', fort: ['#8794a8', '#566174', '#333b49'], deco: 2, sky: 'sea',
+    deck: ['#9c7c58', '#7b5f44'], curb: '#463524', lane: 'rgba(255,255,255,.06)', seam: [30, 18, 8, 105], rail: '#aab3c2', railDk: '#2b303b',
+    arch: ['#5a4634', '#4a5568', '#2f3a48', '#d9e4f2'], islet: ['#f4fbff', '#a9c7dc', '#9bb2c8', '#465c74'], foam: [200, 225, 255, 46], seamGap: 2, post: 'rpostI', snow: true
+  },
+  { // 8 水淹七軍：雨中的河谷
+    abyss: ['#86a2ad', '#3e6478', '#16303f'], road: '#9aa39c', roadFar: '#b6beb6', band: 'rgba(20,40,50,.09)',
+    plaza: '#909b97', rim: '#6f9a62', rimDk: '#3f6a3c', cliffT: '#6f7f84', cliffB: '#2c3a40', fade: '30,60,80',
+    fort: ['#7d8894', '#525c66', '#2f363d'], deco: 6, sky: 'river'
+  },
+  { // 9 赤龍橋：岩漿湖上的黑曜石橋
+    abyss: ['#8a2408', '#e85a10', '#ffb030'], fade: '255,120,20', fort: ['#5a4644', '#3a2a29', '#1f1514'], deco: 3, sky: 'lava',
+    deck: ['#5c4f55', '#463b41'], curb: '#231a1c', lane: 'rgba(255,170,70,.10)', seam: [0, 0, 0, 96], rail: '#ffb23c', railDk: '#7a2a08',
+    arch: ['#2a2024', '#8a1a14', '#1c1416', '#ffb23c'], islet: ['#4a3836', '#1e1514', '#4a3532', '#170c0b'], foam: [255, 205, 100, 80], seamGap: 4, post: 'rpostG'
   }
 ];
 function mkRng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -33,9 +58,13 @@ function mixHex(a, b, t) {
   return 'rgb(' + r + ',' + g + ',' + bl + ')';
 }
 
-function paintAbyss(c, T, rs) {
+function paintAbyss(c, T, rs, plain) {
   const W = V.W, H = V.H, u = V.u;
   c.fillStyle = lg(c, 0, 0, 0, H, [0, T.abyss[0], 0.45, T.abyss[1], 1, T.abyss[2]]); c.fillRect(0, 0, W, H);
+  if (plain) {
+    for (let i = 0; i < 14; i++) { const x = rs() * W, y = rs() * H, r = (70 + rs() * 130) * u; c.fillStyle = rg(c, x, y, 0, r, [0, 'rgba(255,255,255,.07)', 1, 'rgba(255,255,255,0)']); c.fillRect(x - r, y - r, r * 2, r * 2); }
+    return;
+  }
   const N = 220;
   if (T.sky === 'sea') {
     for (let i = 0; i < N; i++) {
@@ -63,6 +92,21 @@ function paintAbyss(c, T, rs) {
       c.fillStyle = 'rgba(38,14,8,' + (0.55 + rs() * 0.35) + ')'; c.fill();
     }
     for (let i = 0; i < 26; i++) { c.fillStyle = 'rgba(255,230,120,.16)'; ell(c, rs() * W, rs() * H, (20 + rs() * 50) * u, (8 + rs() * 16) * u); c.fill(); }
+  } else if (T.sky === 'mist') {
+    // 雲海：一團一團的雲
+    for (let i = 0; i < 60; i++) {
+      const y = rs() * H, s = (0.45 + 0.9 * y / H) * u, x = rs() * W, w = (40 + rs() * 90) * s, h = w * (0.2 + rs() * 0.12);
+      c.fillStyle = 'rgba(255,255,255,' + (0.10 + rs() * 0.16) + ')';
+      for (let k = 0; k < 4; k++) { ell(c, x + (k - 1.5) * w * 0.34, y + (k & 1 ? -h * 0.3 : 0), w * (0.3 + rs() * 0.14), h * (0.7 + rs() * 0.4)); c.fill(); }
+    }
+  } else if (T.sky === 'river') {
+    // 河水：順流的白線
+    for (let i = 0; i < 150; i++) {
+      const y = rs() * H, s = (0.4 + 0.9 * y / H) * u, x = rs() * W - 40 * u, w = (30 + rs() * 90) * s;
+      c.strokeStyle = 'rgba(220,240,250,' + (0.06 + rs() * 0.14) + ')'; c.lineWidth = (1 + rs() * 1.6) * s;
+      c.beginPath(); c.moveTo(x, y); c.bezierCurveTo(x + w * 0.3, y - 5 * s, x + w * 0.6, y + 5 * s, x + w, y - 1 * s); c.stroke();
+    }
+    for (let i = 0; i < 12; i++) { const x = rs() * W, y = rs() * H, r = (50 + rs() * 90) * u; c.fillStyle = rg(c, x, y, 0, r, [0, 'rgba(10,25,35,.22)', 1, 'rgba(10,25,35,0)']); c.fillRect(x - r, y - r, r * 2, r * 2); }
   } else {
     for (let i = 0; i < 16; i++) { const x = rs() * W, y = rs() * H, r = (60 + rs() * 120) * u; c.fillStyle = rg(c, x, y, 0, r, [0, (rs() < 0.5 ? 'rgba(170,70,220,' : 'rgba(230,60,140,') + '.20)', 1, 'rgba(120,40,200,0)']); c.fillRect(x - r, y - r, r * 2, r * 2); }
     for (let i = 0; i < 120; i++) { c.fillStyle = 'rgba(255,220,255,' + (0.2 + rs() * 0.5) + ')'; const s = (0.6 + rs() * 1.4) * u; c.fillRect(rs() * W, rs() * H, s, s); }
@@ -89,6 +133,17 @@ function paintDeco(c, kind, x, y, s, rs) {
     c.fillStyle = rg(c, x, y - 1 * s, 0, 2.6 * s, [0, 'rgba(255,170,50,.55)', 1, 'rgba(255,120,20,0)']); c.fillRect(x - 3 * s, y - 4 * s, 6 * s, 6 * s);
     poly(c, [x - 0.7 * s, y, x - 0.3 * s, y - 2.2 * s, x + 0.3 * s, y - 1.4 * s, x + 0.8 * s, y]); fs(c, '#ffb23c', '#7a2a08', 0.12 * s);
     poly(c, [x + 0.2 * s, y, x + 0.7 * s, y - 1.5 * s, x + 1.2 * s, y]); fs(c, '#ff7a1a', '#7a2a08', 0.12 * s);
+  } else if (kind === 5) {    // 楓樹
+    c.fillStyle = '#5a3a22'; c.fillRect(x - 0.17 * s, y - 1.5 * s, 0.34 * s, 1.5 * s);
+    const cols = ['#e8452c', '#f08a2a', '#f4b63a'];
+    for (const p of [[0, -2.3, 1.15, 0], [-0.75, -1.75, 0.85, 1], [0.7, -1.8, 0.9, 2], [0.1, -1.5, 0.7, 0]]) { ell(c, x + p[0] * s, y + p[1] * s, p[2] * s, p[2] * s * 0.9); fs(c, cols[p[3]], '#8a2a12', 0.11 * s); }
+    ell(c, x - 0.3 * s, y - 2.6 * s, 0.42 * s, 0.32 * s); fs(c, 'rgba(255,235,170,.55)');
+  } else if (kind === 6) {    // 垂柳
+    c.fillStyle = '#3d3226'; c.fillRect(x - 0.16 * s, y - 1.7 * s, 0.32 * s, 1.7 * s);
+    ell(c, x, y - 2.2 * s, 1.25 * s, 0.95 * s); fs(c, '#4f8a55', '#23452c', 0.11 * s);
+    c.strokeStyle = '#3f7a48'; c.lineWidth = 0.13 * s;
+    for (let k = -3; k <= 3; k++) { c.beginPath(); c.moveTo(x + k * 0.36 * s, y - 2.0 * s); c.quadraticCurveTo(x + k * 0.44 * s, y - 1.2 * s, x + k * 0.4 * s, y - (0.5 + (k & 1) * 0.25) * s); c.stroke(); }
+    ell(c, x - 0.3 * s, y - 2.5 * s, 0.4 * s, 0.26 * s); fs(c, 'rgba(190,230,190,.4)');
   } else {                    // 符文碑
     c.fillStyle = rg(c, x, y - 1.4 * s, 0, 2.6 * s, [0, 'rgba(255,90,230,.45)', 1, 'rgba(200,60,255,0)']); c.fillRect(x - 3 * s, y - 4.4 * s, 6 * s, 6 * s);
     poly(c, [x - 0.6 * s, y, x - 0.45 * s, y - 2.4 * s, x, y - 3 * s, x + 0.45 * s, y - 2.4 * s, x + 0.6 * s, y]); fs(c, '#2c2040', '#0e0818', 0.12 * s);
@@ -96,8 +151,10 @@ function paintDeco(c, kind, x, y, s, rs) {
   }
 }
 
-function paintFort(c, T, ruined) {
-  P(rcx(L), L); const X = PX, Y = PY, U = PS, ky = V.ky, half = rhw(L) + 1.5;
+function paintFort(c, T, ruined) { P(rcx(L), L); paintFortAt(c, T, ruined, PX, PY, PS, rhw(L) + 1.5, [4.9, 12.6, 16.4]); }
+// X, Y = 城門腳下的中心點；U = 每世界單位幾個像素；half = 城牆半寬；flags = 軍旗掛在離中心多遠
+function paintFortAt(c, T, ruined, X, Y, U, half, flags) {
+  const ky = V.ky;
   const A = T.fort[0], B = T.fort[1], D = T.fort[2];
   const ink = 'rgba(10,6,14,.85)', lw = Math.max(1, 0.16 * U);
   // 主堡
@@ -139,7 +196,7 @@ function paintFort(c, T, ruined) {
   }
   // 掛在城牆上的赤潮軍旗
   for (const sd of [-1, 1]) {
-    for (const off of [4.9, 12.6, 16.4]) {
+    for (const off of flags) {
       const bx = X + sd * off * U, bw = 0.85 * U, top = Y - wh * 0.93, bot = Y - wh * 0.2;
       poly(c, [bx - bw, top, bx + bw, top, bx + bw, bot, bx, bot - 0.9 * U, bx - bw, bot]); fs(c, '#d8281f', ink, lw * 0.7);
       c.strokeStyle = '#ffd9a0'; c.lineWidth = lw * 0.9; c.beginPath(); c.moveTo(bx - 0.5 * U, top + 1.1 * U); c.lineTo(bx, top + 2.1 * U); c.lineTo(bx + 0.5 * U, top + 1.1 * U); c.stroke();
@@ -159,6 +216,7 @@ function paintFort(c, T, ruined) {
 }
 
 function renderTerrain(lv, ruined) {
+  if (lv.mode === 'march') return ruined ? renderSheet(lv) : renderBridge(lv);
   const W = V.W, H = V.H, T = THEMES[lv.theme], u = V.u, ky = V.ky;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const c = cv.getContext('2d'); c.lineJoin = 'round'; c.lineCap = 'round';
@@ -254,6 +312,8 @@ function renderTerrain(lv, ruined) {
     const s = PS;
     if (T.deco === 0) { c.fillStyle = rs() < 0.5 ? '#5fb53a' : '#8fdc5a'; for (let j = -1; j <= 1; j++) { poly(c, [PX + j * 0.16 * s - 0.09 * s, PY, PX + j * 0.2 * s, PY - 0.45 * s, PX + j * 0.16 * s + 0.09 * s, PY]); c.fill(); } }
     else if (T.deco === 2) { ell(c, PX, PY - 0.1 * s, 0.38 * s, 0.2 * s); fs(c, '#ffffff'); }
+    else if (T.deco === 5) { for (let j = 0; j < 3; j++) { ell(c, PX + (rs() - 0.5) * 0.7 * s, PY - rs() * 0.16 * s, 0.17 * s, 0.1 * s, rs() * 3); fs(c, rs() < 0.5 ? '#e8452c' : '#f4b63a'); } }
+    else if (T.deco === 6) { c.fillStyle = rs() < 0.5 ? '#4f8a55' : '#7fae6a'; for (let j = -1; j <= 1; j++) { poly(c, [PX + j * 0.16 * s - 0.08 * s, PY, PX + j * 0.2 * s, PY - 0.4 * s, PX + j * 0.16 * s + 0.08 * s, PY]); c.fill(); } }
     else { poly(c, [PX - 0.3 * s, PY, PX - 0.12 * s, PY - 0.34 * s, PX + 0.22 * s, PY - 0.26 * s, PX + 0.32 * s, PY]); fs(c, T.deco === 3 ? '#2a1c1a' : T.deco === 4 ? '#3a2c50' : '#c98a4a', 'rgba(0,0,0,.35)', Math.max(0.6, 0.05 * s)); }
   }
   if (T.deco === 3 || T.deco === 4) {   // 發光裂紋
@@ -297,5 +357,94 @@ function renderTerrain(lv, ruined) {
       poly(c, [ax, t0, bx, t0, bx, t1 + 0.5 * s, ax, t1 + 0.5 * s]); fs(c, lg(c, 0, t0, 0, t1 + 0.5 * s, [0, '#c5cee2', 1, '#8b97b3']), '#1b2238', Math.max(1, 1.3 * u));
     }
   }
+  return cv;
+}
+
+/* ---------- 行軍關：一座筆直的橋 ----------
+   橋面是直的，所以橋身、欄杆這些「沿著 z 方向不變」的東西可以畫死在底圖上；
+   會跟著行軍往下捲的（石板接縫、望柱、牌樓、小島、浪花）由 70-render 每幀畫。 */
+function renderBridge(lv) {
+  const W = V.W, H = V.H, T = THEMES[lv.theme], u = V.u, ky = V.ky;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d'); c.lineJoin = 'round'; c.lineCap = 'round';
+  paintAbyss(c, T, mkRng(4242 + lv.theme * 99), true);
+  const hw = rhw(0), zA = ZMIN - 6, zB = 330;
+  const strip = (x0, x1) => { P(x0, zA); const ax = PX, ay = PY; P(x0, zB); const bx = PX, by = PY; P(x1, zB); const dx = PX, dy = PY; P(x1, zA); poly(c, [ax, ay, bx, by, dx, dy, PX, PY]); };
+  // 水面上的橋影、橋身側面、橋面
+  strip(-hw - 2.2, hw + 2.2); fs(c, 'rgba(6,24,60,.22)');
+  strip(-hw - 0.7, hw + 0.7); fs(c, T.curb, 'rgba(0,0,0,.35)', Math.max(1, 1.2 * u));
+  strip(-hw, hw); c.fillStyle = lg(c, 0, V.y0, 0, V.yT * 0.4, [0, T.deck[0], 1, T.deck[1]]); c.fill();
+  // 中央御道與兩側的邊線
+  strip(-1.7, 1.7); fs(c, T.lane);
+  c.strokeStyle = 'rgba(0,0,0,.14)'; c.lineWidth = Math.max(1, 1.1 * u);
+  for (const x of [-hw + 0.7, -1.7, 1.7, hw - 0.7]) { P(x, zA); const ax = PX, ay = PY; P(x, zB); c.beginPath(); c.moveTo(ax, ay); c.lineTo(PX, PY); c.stroke(); }
+  // 橋欄：兩道橫杆（望柱每幀畫）
+  for (const sd of [-1, 1]) for (const hgt of [0.62, 1.22]) {
+    P(sd * (hw + 0.28), zA); const ax = PX, ay = PY - hgt * PS * ky, wa = PS; P(sd * (hw + 0.28), zB); const bx = PX, by = PY - hgt * PS * ky;
+    c.strokeStyle = T.railDk; c.lineWidth = Math.max(1.4, 0.2 * V.s0 * 0.6); c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke();
+    c.strokeStyle = T.rail; c.lineWidth = Math.max(1, 0.11 * V.s0 * 0.6); c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke();
+  }
+  // 遠處罩一層霧
+  c.fillStyle = lg(c, 0, 0, 0, V.yT * 1.5, [0, T.abyss[0], 0.55, 'rgba(' + T.fade + ',0)']); c.globalAlpha = 0.75; c.fillRect(0, 0, W, V.yT * 1.5); c.globalAlpha = 1;
+  return cv;
+}
+
+// 行軍關的大型佈景（橋頭堡、牌樓、小島、橋面浮雕）畫在另一張 1024×1024 的圖上，當第二張貼圖用
+const SHEET = {}, ARCH_U = 28, FORT_U = 20;      // 這兩樣佈景在圖上每世界單位佔幾個像素
+function sheetCell(name, x, y, w, h, ax, ay) { SHEET[name] = { x, y, w, h, u0: x / 1024, v0: y / 1024, u1: (x + w) / 1024, v1: (y + h) / 1024, ax, ay }; }
+sheetCell('fort', 0, 0, 512, 448, 0.5, 430 / 448); sheetCell('fortR', 512, 0, 512, 448, 0.5, 430 / 448);
+sheetCell('arch', 0, 452, 640, 320, 0.5, 312 / 320);
+sheetCell('isle0', 644, 452, 180, 220, 0.5, 0.42); sheetCell('isle1', 828, 452, 180, 220, 0.5, 0.42);
+sheetCell('medal', 0, 776, 160, 160, 0.5, 0.5); sheetCell('isle2', 164, 776, 180, 220, 0.5, 0.42);
+function renderSheet(lv) {
+  const T = THEMES[lv.theme], cv = document.createElement('canvas'); cv.width = 1024; cv.height = 1024;
+  const c = cv.getContext('2d'); c.lineJoin = 'round'; c.lineCap = 'round';
+  const cell = (name, fn) => { const q = SHEET[name]; c.save(); c.beginPath(); c.rect(q.x, q.y, q.w, q.h); c.clip(); c.translate(q.x, q.y); fn(q.w, q.h); c.restore(); };
+  const half = rhw(0) + 1.5;
+  cell('fort', () => paintFortAt(c, T, false, 256, 430, FORT_U, half, [4.9]));
+  cell('fortR', () => paintFortAt(c, T, true, 256, 430, FORT_U, half, [4.9]));
+  cell('arch', (w, h) => {
+    // 牌樓：兩根柱子、橫梁、屋頂。柱心在 ±(橋半寬 + 0.9)
+    const U = ARCH_U, cx = w / 2, gy = h - 8, px = (rhw(0) + 0.9) * U, A = T.arch, ink = 'rgba(14,8,10,.9)';
+    const shade = (x0, x1) => lg(c, x0, 0, x1, 0, [0, 'rgba(0,0,0,.35)', 0.4, 'rgba(255,255,255,.2)', 1, 'rgba(0,0,0,.4)']);
+    for (const sd of [-1, 1]) {
+      const x = cx + sd * px;
+      c.fillStyle = 'rgba(6,10,30,.3)'; ell(c, x, gy, 30, 8); c.fill();
+      rrect(c, x - 13, gy - 236, 26, 236, 5); fs(c, A[0]); fs(c, shade(x - 13, x + 13), ink, 3);
+      rrect(c, x - 19, gy - 22, 38, 22, 5); fs(c, '#b9b4a6', ink, 3);
+    }
+    rrect(c, cx - px - 14, gy - 252, (px + 14) * 2, 22, 6); fs(c, A[0], ink, 3);
+    rrect(c, cx - px - 26, gy - 206, (px + 26) * 2, 26, 6); fs(c, A[1]); fs(c, lg(c, 0, gy - 206, 0, gy - 180, [0, 'rgba(255,255,255,.18)', 1, 'rgba(0,0,0,.3)']), ink, 3);
+    for (let k = -4; k <= 4; k++) { ell(c, cx + k * px / 4.6, gy - 193, 5.5, 5.5); fs(c, A[3], 'rgba(60,30,0,.7)', 1.6); }
+    // 屋頂：兩端上翹
+    c.beginPath(); c.moveTo(cx - px - 64, gy - 262); c.quadraticCurveTo(cx - px - 20, gy - 258, cx - px + 6, gy - 290); c.lineTo(cx + px - 6, gy - 290); c.quadraticCurveTo(cx + px + 20, gy - 258, cx + px + 64, gy - 262);
+    c.quadraticCurveTo(cx + px + 30, gy - 244, cx + px + 4, gy - 248); c.lineTo(cx - px - 4, gy - 248); c.quadraticCurveTo(cx - px - 30, gy - 244, cx - px - 64, gy - 262); c.closePath();
+    fs(c, A[2]); fs(c, lg(c, 0, gy - 290, 0, gy - 246, [0, 'rgba(255,255,255,.16)', 1, 'rgba(0,0,0,.35)']), ink, 3);
+    c.strokeStyle = 'rgba(0,0,0,.22)'; c.lineWidth = 2; for (let x = cx - px; x <= cx + px; x += 16) { c.beginPath(); c.moveTo(x, gy - 288); c.lineTo(x - (x - cx) * 0.03, gy - 250); c.stroke(); }
+    rrect(c, cx - px + 2, gy - 298, (px - 2) * 2, 10, 4); fs(c, A[3], 'rgba(60,30,0,.8)', 2.2);
+    // 匾額
+    rrect(c, cx - 46, gy - 246, 92, 36, 5); fs(c, '#1d2a4a', A[3], 4);
+    c.fillStyle = A[3]; for (const k of [-1, 0, 1]) { poly(c, [cx + k * 24, gy - 238, cx + k * 24 + 8, gy - 228, cx + k * 24, gy - 218, cx + k * 24 - 8, gy - 228]); c.fill(); }
+  });
+  const rs = mkRng(99 + lv.theme * 7);
+  for (let k = 0; k < 3; k++) cell('isle' + k, (w, h) => {
+    // 小島：頂面是草地，崖面往下淡進海裡
+    const I = T.islet, cx = w / 2, cy = h * 0.42, rx = 62 + k * 10, ry = 24 + k * 4;
+    c.beginPath(); c.moveTo(cx - rx, cy); c.lineTo(cx - rx * 0.72, h - 4); c.lineTo(cx + rx * 0.72, h - 4); c.lineTo(cx + rx, cy); c.closePath();
+    c.fillStyle = lg(c, 0, cy, 0, h - 4, [0, I[2], 0.5, I[3], 1, 'rgba(' + T.fade + ',0)']); c.fill();
+    c.fillStyle = lg(c, cx - rx, 0, cx + rx, 0, [0, 'rgba(255,255,255,.14)', 0.5, 'rgba(0,0,0,0)', 1, 'rgba(0,0,0,.28)']); c.fill();
+    ell(c, cx, cy, rx, ry); fs(c, I[0], I[1], 3);
+    paintDeco(c, T.deco, cx - 14 + k * 12, cy + 2, 17 + k * 2, rs);
+    if (k) paintDeco(c, T.deco, cx + 26 - k * 30, cy - 4, 13, rs);
+  });
+  cell('medal', (w) => {
+    // 橋面浮雕（貼地畫，所以這裡是正圓）
+    const m = w / 2;
+    ell(c, m, m, 72, 72); fs(c, 'rgba(255,255,255,.22)', 'rgba(60,45,20,.5)', 5);
+    ell(c, m, m, 52, 52); fs(c, null, 'rgba(60,45,20,.4)', 4);
+    c.strokeStyle = 'rgba(60,45,20,.45)'; c.lineWidth = 5;
+    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; c.beginPath(); c.moveTo(m + Math.cos(a) * 20, m + Math.sin(a) * 20); c.quadraticCurveTo(m + Math.cos(a + 0.5) * 38, m + Math.sin(a + 0.5) * 38, m + Math.cos(a + 0.2) * 50, m + Math.sin(a + 0.2) * 50); c.stroke(); }
+    ell(c, m, m, 14, 14); fs(c, 'rgba(60,45,20,.4)');
+  });
   return cv;
 }

@@ -81,6 +81,12 @@ function sfx(name, arg) {
       case 'win': [60, 64, 67, 72, 76, 79, 84].forEach((n, i) => { tone(NOTE(n), 0.34, 'sawtooth', 0.08, 0, i * 0.11); tone(NOTE(n), 0.34, 'triangle', 0.11, 0, i * 0.11); }); [72, 76, 79].forEach((n) => tone(NOTE(n), 1.1, 'triangle', 0.1, 0, 0.82, null, 0.03)); break;
       case 'lose0': tone(220, 0.9, 'sawtooth', 0.15, 70, 0, null, 0.02); noise(0.8, 0.2, 'lowpass', 800, 80, 1); break;
       case 'lose': [67, 63, 60, 55].forEach((n, i) => tone(NOTE(n), 0.42, 'triangle', 0.14, 0, i * 0.24)); break;
+      case 'flood': noise(2.6, 0.5, 'lowpass', 500, 1800, 0.7, 0, null); noise(2.4, 0.22, 'bandpass', 2400, 900, 0.9, 0.2); tone(60, 2.2, 'sine', 0.4, 38, 0, null, 0.3); break;
+      case 'warn2': for (let i = 0; i < 3; i++) tone(i & 1 ? 520 : 700, 0.16, 'sawtooth', 0.12, 0, i * 0.17, null, 0.02); break;
+      case 'breath': noise(1.1, 0.42, 'bandpass', 700, 240, 0.8); tone(86, 0.9, 'sawtooth', 0.2, 50, 0, null, 0.05); noise(0.8, 0.14, 'highpass', 2600, 0, 1, 0.1); break;
+      case 'arw': if (gap('arw', 95)) return; noise(0.035, 0.035, 'highpass', 4200 + Math.random() * 1800, 0, 1.2); break;
+      case 'ghit': if (gap('ghit', 60)) return; tone(NOTE(76 + Math.min(24, Math.max(0, arg || 0) >> 1)), 0.06, 'triangle', 0.05); break;
+      case 'rw': [76, 81, 84, 88].forEach((n, i) => tone(NOTE(n), 0.16, 'triangle', 0.09, 0, i * 0.045)); break;
       case 'milestone': [76, 81, 88].forEach((n, i) => tone(NOTE(n), 0.2, 'square', 0.065, 0, i * 0.06)); break;
     }
   } catch (e) { /* 聲音失敗不影響遊戲 */ }

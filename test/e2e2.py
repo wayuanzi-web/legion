@@ -1,10 +1,12 @@
 """端對端（二）：輸掉一場 → 結算 → 強化購買 → 再戰；設定裡切難度、解鎖全部、清除進度。"""
 import asyncio, sys, pathlib, json
 from playwright.async_api import async_playwright
+import os
+GPU_ARGS = [] if os.environ.get('WJ_GPU') == '0' else ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']      # WJ_GPU=0：有些機器加了這兩個參數截圖反而很慢
 root = pathlib.Path(__file__).resolve().parent.parent
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'])
+        b = await p.chromium.launch(args=GPU_ARGS + ['--autoplay-policy=no-user-gesture-required'])
         ctx = await b.new_context(viewport={'width': 300, 'height': 650}, device_scale_factor=1, has_touch=True)
         pg = await ctx.new_page()
         msgs = []
@@ -17,7 +19,7 @@ async def main():
         await pg.click('#btnOpt'); await pg.wait_for_timeout(200)
         await pg.click('#diffSeg button[data-d="2"]'); await pg.click('#btnUnlock'); await pg.wait_for_timeout(300)
         print('after unlock', json.dumps(await st()))
-        await pg.click('#lvls .lv:nth-child(4)'); await pg.wait_for_timeout(500)
+        await pg.locator('#lvls .lv').nth(3).click(); await pg.wait_for_timeout(500)
         await pg.click('#btnGo'); await pg.wait_for_timeout(500)
         print('started L4 hard', json.dumps(await st()))
         for i in range(200):

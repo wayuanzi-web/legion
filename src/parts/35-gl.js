@@ -93,9 +93,11 @@ function flush2d() {
     const straight = Math.abs(y1 - y0) < 0.01 && x1 > x0 && y2 > y1;
     if (!GLR.tintable) GLR.tintable = ['soft', 'puff', 'dot', 'star', 'disc'].map((n) => AT.sp[n]);
     const px = u0 * iw + 0.5, py = v0 * ih + 0.5;
-    if (u0 === u1) {                                   // 純色矩形（血條、全畫面閃光）
+    if (u0 === u1) {                                   // 純色（血條、全畫面閃光、地面上的梯形）
       c.fillStyle = 'rgb(' + (col & 255) + ',' + ((col >> 8) & 255) + ',' + ((col >> 16) & 255) + ')';
-      c.fillRect(x0, y0, x1 - x0, y2 - y1); continue;
+      if (straight && vf[o + 18] === x0) c.fillRect(x0, y0, x1 - x0, y2 - y1);
+      else { c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.lineTo(x2, y2); c.lineTo(vf[o + 18], vf[o + 19]); c.closePath(); c.fill(); }
+      continue;
     }
     let blob = false;
     if (tint) for (const t of GLR.tintable) if (px >= t.x && px < t.x + t.w && py >= t.y && py < t.y + t.h) { blob = true; break; }
@@ -151,6 +153,16 @@ function sprRot(s, cx, cy, w, h, rot, col, ex) {
   vf[o + 6] = cx + ax - bx; vf[o + 7] = cy + ay - by; vf[o + 8] = s.u1; vf[o + 9] = s.v0; vu[o + 10] = col; vu[o + 11] = ex;
   vf[o + 12] = cx + ax + bx; vf[o + 13] = cy + ay + by; vf[o + 14] = s.u1; vf[o + 15] = s.v1; vu[o + 16] = col; vu[o + 17] = ex;
   vf[o + 18] = cx - ax + bx; vf[o + 19] = cy - ay + by; vf[o + 20] = s.u0; vf[o + 21] = s.v1; vu[o + 22] = col; vu[o + 23] = ex;
+  qn++;
+}
+// 任意四邊形（純色），四個頂點依序繞一圈。地面上的梯形（缺口、火線）用這個
+function quad4(x0, y0, x1, y1, x2, y2, x3, y3, col, ex) {
+  if (qn >= MAXQ) flush();
+  const s = AT.sp.white, um = (s.u0 + s.u1) / 2, vm = (s.v0 + s.v1) / 2, o = qn * 24; ex = ex || 0;
+  vf[o] = x0; vf[o + 1] = y0; vf[o + 2] = um; vf[o + 3] = vm; vu[o + 4] = col; vu[o + 5] = ex;
+  vf[o + 6] = x1; vf[o + 7] = y1; vf[o + 8] = um; vf[o + 9] = vm; vu[o + 10] = col; vu[o + 11] = ex;
+  vf[o + 12] = x2; vf[o + 13] = y2; vf[o + 14] = um; vf[o + 15] = vm; vu[o + 16] = col; vu[o + 17] = ex;
+  vf[o + 18] = x3; vf[o + 19] = y3; vf[o + 20] = um; vf[o + 21] = vm; vu[o + 22] = col; vu[o + 23] = ex;
   qn++;
 }
 // 純色矩形（用圖集裡的白塊）

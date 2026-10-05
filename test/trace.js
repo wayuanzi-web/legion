@@ -1,27 +1,16 @@
-// node test/trace.js <level> <bot> <flow|-> <up> [every=5]  逐段印出戰況
+// node test/trace.js <level> [bot] [up] [diff]   破陣關每 4 秒印一行：戰線、兩軍人數、城牆、敵城兵力、機關狀態
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..', 'src', 'parts');
-const src = ['10-core.js', '50-sim.js', '60-levels.js', '65-bot.js'].map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
-  + '\nreturn {S, simInit, simStep, simUlt, makeBot, LEVELS, L};';
-const G = new Function(src)();
-const { S, simInit, simStep, makeBot, LEVELS } = G;
-const a = process.argv.slice(2), li = +a[0] - 1, botName = a[1] || 'good', upL = +(a[3] || 0), every = +(a[4] || 5);
-const lv = LEVELS[li];
-if (a[2] && a[2] !== '-') { const sc = +a[2] / lv.flow; lv.flow = +a[2]; lv.fort = Math.round(lv.fort * sc); }
-const up = { rate: upL, armor: upL, hero: upL, ult: upL, wall: upL };
-simInit(li, up, 777);
-const bot = makeBot(botName, Math.random);
-let lastK = 0, lastShots = 0, born = 0, lastBorn = 0;
-const ev0 = {};
-S.on = (t, x) => { ev0[t] = (ev0[t] || 0) + 1; if (t === 'g') born += arguments.length; };
-let made = 0; const origOn = S.on;
-S.on = function (t, g, x, z, m) { ev0[t] = (ev0[t] || 0) + 1; if (t === 'g') made += m; };
-while (S.state === 'play' && S.time < 260) {
+const src = fs.readdirSync(dir).filter((f) => /^(10|50|52|53|60|65)-.*\.js$/.test(f)).sort().map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
+  + '\nreturn {S, simInit, simStep, simUlt, botFor, LEVELS, L};';
+const { S, simInit, simStep, botFor } = new Function(src)();
+const arg = process.argv.slice(2), li = +arg[0] - 1, upL = +(arg[2] || 0);
+simInit(li, { rate: upL, armor: upL, hero: upL, ult: upL, wall: upL }, 4321, +(arg[3] || 1));
+const bot = botFor(arg[1] || 'good'); let floods = 0, fk = 0;
+S.on = (t, a) => { if (t === 'flood') floods++; if (t === 'floodend') fk += a; };
+while (S.state === 'play' && S.time < 300) {
   bot(1 / 60); simStep(1 / 60);
-  if (S.frame % (60 * every) === 0) {
-    const dk = S.kills - lastK, ds = S.shots - lastShots, dm = made - lastBorn;
-    console.log(`t=${String(S.time.toFixed(0)).padStart(3)} front=${String(S.front).padStart(3)} B=${String(S.B.n).padStart(4)} R=${String(S.R.n).padStart(4)} fort=${String(S.fort.hp).padStart(4)} wall=${String(S.wallHp).padStart(2)} kills/s=${(dk / every).toFixed(0).padStart(3)} blue/s=${((ds + dm) / every).toFixed(0).padStart(3)} (x${((ds + dm) / ds).toFixed(1)}) cannonX=${S.cannonX.toFixed(1)} bigs=${S.bigs.map((b) => b.kind[0] + Math.round(b.hp)).join(',')} surge=${S.surge.on > 0 ? 'ON' : '-'} ult=${S.ult.uses}`);
-    lastK = S.kills; lastShots = S.shots; lastBorn = made;
-  }
+  if (S.frame % 240 === 0) console.log(`t=${S.time.toFixed(0).padStart(3)} front=${String(S.front).padStart(3)} B=${String(S.B.n).padStart(4)} R=${String(S.R.n).padStart(5)} wall=${S.wallHp}/${S.wallMax} fort=${S.fort.hp} kills=${S.kills} lost=${S.lost} ult=${S.ult.uses}` +
+    (S.rgates.length ? ' 赤門 ' + S.rgates.map((g) => g.alive ? g.hp : '破').join('/') : '') + (S.peds.length ? ' 石座 ' + S.peds.map((p) => p.kind[0] + (p.built ? '✓' : p.got + '/' + p.need)).join(' ') : '') + (floods ? ` 放水${floods}次沖走${fk}` : '') + (S.bigs.length ? ' 大 ' + S.bigs.map((b) => b.kind[0] + Math.round(b.hp)).join(',') : ''));
 }
-console.log(S.state, 't=' + S.time.toFixed(0), 'kills', S.kills, 'lost', S.lost, 'wall', S.wallHp, JSON.stringify(ev0));
+console.log(S.state, S.time.toFixed(0) + 's', 'wall', S.wallHp + '/' + S.wallMax, 'kills', S.kills, 'lost', S.lost);

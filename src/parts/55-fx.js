@@ -16,11 +16,11 @@ let SPT = [];
 const FX = {
   shake: 0, shx: 0, shy: 0, flash: 0, flashCol: 0xffffff, dark: 0, slow: 1, slowT: 0, stop: 0,
   floats: [], bodies: 0, puffs: 0, killsF: 0, killRate: 0, lostRate: 0, time: 0, low: false,
-  gateAcc: new Map(), fortRuined: false, banner: null, muzzle: 0, heroGlow: 0, wallFlash: 0, fortShake: 0, redVig: 0, surge: 0
+  gateAcc: new Map(), fortRuined: false, banner: null, muzzle: 0, heroGlow: 0, wallFlash: 0, fortShake: 0, redVig: 0, surge: 0, armyPop: 0
 };
 function fxReset() {
   pn = 0; FX.shake = 0; FX.flash = 0; FX.dark = 0; FX.slow = 1; FX.slowT = 0; FX.stop = 0; FX.floats.length = 0;
-  FX.killRate = 0; FX.lostRate = 0; FX.gateAcc.clear(); FX.fortRuined = false; FX.muzzle = 0; FX.heroGlow = 0; FX.wallFlash = 0; FX.fortShake = 0; FX.surge = 0; FX.redVig = 0;
+  FX.killRate = 0; FX.lostRate = 0; FX.gateAcc.clear(); FX.fortRuined = false; FX.muzzle = 0; FX.heroGlow = 0; FX.wallFlash = 0; FX.fortShake = 0; FX.surge = 0; FX.redVig = 0; FX.armyPop = 0;
 }
 function pt(sp, x, z, y, vx, vz, vy, life, size, col, fl, grav, rot, vr) {
   if (pn >= PMAX) return;
@@ -66,6 +66,11 @@ function explode(x, z, r, kind) {
 function deathFx(team, kind, x, z, y, cause, ox, oz, pow) {
   FX.killsF++;
   const budget = FX.low ? 22 : 46;
+  if (cause === 6) {       // 掉進缺口：整個人往下沉、越變越小
+    if (FX.bodies < budget) { FX.bodies++; pt(team ? (kind === 1 ? SP_W : kind === 2 ? SP_S : SP_R) : SP_B, x, z, 0.2, rnf(-0.6, 0.6), rnf(-0.4, 0.4), -5.5, 0.5, 1.9, C_WHITE, PF_SHRINK, 0, 0, rnf(-9, 9)); }
+    if (FX.puffs < 30 && R01() < 0.3) { FX.puffs++; pt(SP_RING, x, z, 0.02, 0, 0, 0, 0.3, 0.5, rgba(200, 235, 255, 200), PF_FLAT | PF_GROW, 0); }
+    return;
+  }
   if (FX.bodies < budget) {
     FX.bodies++;
     let vx, vz, vy;
@@ -110,18 +115,23 @@ function fxOn(type, a, b, c, d, e, f, g, h, i) {
     case 'gend': burst(a.x, a.z, 2.6, 26, a.kind === 2 ? C_GOLD : C_WHITE, 12, 0.5, 0.8, PF_ADD); sfx('gbreak'); break;
     case 'wall': FX.wallFlash = 1; addShake(4 + b * 0.6); addFlash(0xff3020, 0.12); FX.redVig = 1;
       burst(a, WALLZ + 0.8, 0.8, 5, C_DUST, 6, 0.4, 0.5, 0); sfx('wall'); vibrate(18); break;
-    case 'fh': FX.fortShake = 1; if (R01() < 0.5) pt(SP_STAR, a, L - 1, 2 + R01() * 3, 0, 0, 0, 0.16, 2.6, rgba(255, 230, 150, 255), PF_ADD | PF_SHRINK, 0, R01() * 3); sfx('fh'); break;
+    case 'fh': FX.fortShake = 1; if (R01() < 0.5) pt(SP_STAR, a, S.fz - 1, 2 + R01() * 3, 0, 0, 0, 0.16, 2.6, rgba(255, 230, 150, 255), PF_ADD | PF_SHRINK, 0, R01() * 3); sfx('fh'); break;
     case 'rally': say('敵城動搖，狼騎反撲', 1); sfx('horn'); break;
     case 'surge': banner('敵軍總攻', 'red'); sfx('horn'); addShake(6); vibrate(40); break;
     case 'dry': banner('敵軍兵力已盡', 'gold'); say('殺進城門！', 0); sfx('built'); break;
     case 'beacon': banner('烽火反擊', 'gold'); addFlash(0xffb040, 0.4); addShake(14); sfx('boom2'); vibrate(80); break;
     case 'fortdie':
       FX.fortRuined = true; addShake(26); addFlash(0xffffff, 0.75); FX.slowT = 1.1; FX.slow = 0.3;
-      for (let k = 0; k < 9; k++) { const xx = rcx(L) + rnf(-14, 14); explode(xx, L - rnf(0, 3), 4.5, 3); }
-      for (let k = 0; k < 26; k++) { const a2 = R01() * TAU; pt(SP_ROCK, rcx(L) + rnf(-10, 10), L - 1, rnf(2, 7), Math.cos(a2) * rnf(4, 14), -rnf(4, 16), rnf(8, 20), 1.6, rnf(1.2, 2.6), C_WHITE, PF_BOUNCE, 26, R01() * 6, rnf(-8, 8)); }
+      for (let k = 0; k < 9; k++) { const xx = rcx(S.fz) + rnf(-14, 14) * (S.mode ? 0.6 : 1); explode(xx, S.fz - rnf(0, 3), 4.5, 3); }
+      for (let k = 0; k < 26; k++) { const a2 = R01() * TAU; pt(SP_ROCK, rcx(S.fz) + rnf(-10, 10), S.fz - 1, rnf(2, 7), Math.cos(a2) * rnf(4, 14), -rnf(4, 16), rnf(8, 20), 1.6, rnf(1.2, 2.6), C_WHITE, PF_BOUNCE, 26, R01() * 6, rnf(-8, 8)); }
       sfx('fortdie'); vibrate(120); break;
     case 'big': if (a.kind === 'giant') { sfx('giant'); say('巨魔來襲'); } break;
     case 'bigdie': {
+      if (a.kind === 'dragon') {
+        for (let k = 0; k < 16; k++) explode(a.x + Math.sin(k * 0.55) * (0.6 + k * 0.26) + rnf(-1, 1), a.z + k * 1.5, 4.2, 2);
+        burst(a.x, a.z, 4, 80, C_GOLD, 18, 0.6, 1.2, PF_ADD);
+        addShake(26); FX.slowT = 1.8; FX.slow = 0.25; addFlash(0xffffff, 0.9); vibrate(200); sfx('fortdie'); break;
+      }
       const sz = a.kind === 'boss' ? 3 : a.kind === 'giant' ? 1.8 : 1;
       ringFx(a.x, a.z, 3 * sz, rgba(255, 220, 200, 255), 0.45, true);
       for (let k = 0; k < 14 * sz; k++) { const an = R01() * TAU; pt(SP_PUFF, a.x + Math.cos(an) * sz, a.z + Math.sin(an) * sz, rnf(0.5, 3 * sz), Math.cos(an) * rnf(2, 6), Math.sin(an) * rnf(2, 6), rnf(2, 7), rnf(0.5, 1), rnf(1, 2.4) * sz, rgba(255, 150, 130, 240), PF_GROW, -2); }
@@ -140,7 +150,7 @@ function fxOn(type, a, b, c, d, e, f, g, h, i) {
     case 'heroready': FX.heroGlow = 1; sfx('charge'); break;
     case 'hero':
       FX.heroGlow = 0; FX.muzzle = 2.2; addShake(10); addFlash(0xfff0b0, 0.22);
-      for (let k = 0; k < 14; k++) pt(SP_PUFF, a.x + rnf(-1, 1), CANZ + 2, 1.5, rnf(-4, 4), rnf(0, 6), rnf(1, 5), 0.7, 1.8, rgba(255, 245, 220, 230), PF_GROW, -2);
+      for (let k = 0; k < 14; k++) pt(SP_PUFF, a.x + rnf(-1, 1), a.z0 + 1, 1.5, rnf(-4, 4), rnf(0, 6), rnf(1, 5), 0.7, 1.8, rgba(255, 245, 220, 230), PF_GROW, -2);
       banner('先鋒大將出陣', 'gold'); sfx('hero'); vibrate(40); break;
     case 'heroland':
       ringFx(a, b, c * 1.25, C_GOLD, 0.5, true); pt(SP_SOFT, a, b, 1, 0, 0, 0, 0.3, c * 1.3, rgba(255, 235, 150, 255), PF_ADD | PF_GROW, 0);
@@ -154,7 +164,7 @@ function fxOn(type, a, b, c, d, e, f, g, h, i) {
       burst(a, b, 1.5, 44, C_GOLD, 16, 0.55, 1, PF_ADD); addShake(16); addFlash(0xfff0b0, 0.2); sfx('land');
       if (d > 20) floatText(String(d), a, b, 4, 2.6, C_GOLD, 1.1); break;
     case 'boss': banner('赤潮魔王', 'boss'); FX.dark = 1; addShake(20); sfx('warning'); speak('警告，魔王來襲'); vibrate(200); break;
-    case 'rage': banner('魔王暴怒', 'red'); addShake(16); addFlash(0xff2010, 0.3); sfx('roar'); break;
+    case 'rage': banner(a.kind === 'dragon' ? '赤龍暴怒' : '魔王暴怒', 'red'); addShake(16); addFlash(0xff2010, 0.3); sfx('roar'); break;
     case 'roar': ringFx(a.x, a.z, 9, C_PURP, 0.6, true); addShake(9); sfx('roar'); break;
     case 'ult': FX.dark = Math.max(FX.dark, 0.75); banner('萬箭齊發', 'gold'); sfx('ult'); vibrate(50); break;
     case 'ultend': if (a > 30) { floatText(String(a), rcx(S.ult.z0 + 8), S.ult.z0 + 8, 5, 3.4, C_GOLD, 1.3); } break;
@@ -163,12 +173,48 @@ function fxOn(type, a, b, c, d, e, f, g, h, i) {
     case 'boom': explode(a, b, c, e); if (d > 12) floatText(String(d), a, b, 3, e === 3 ? 3 : 2.2, e === 0 || e === 3 ? C_GOLD : C_RED, 1); sfx(e === 3 ? 'boom2' : 'boom'); if (e === 3) { FX.stop = 0.05; vibrate(50); } break;
     case 'throw': sfx('throw'); break;
     case 'feed': if (R01() < 0.5) pt(SP_STAR, b, c, 1.2, 0, 0, 5, 0.3, 1, C_GOLD, PF_ADD | PF_SHRINK, 0, R01() * 3); sfx('feed'); break;
-    case 'built': burst(a.x, a.z, 1.5, 36, C_GOLD, 12, 0.5, 0.9, PF_ADD); ringFx(a.x, a.z, 5, C_GOLD, 0.5, true); say(a.kind === 'ballista' ? '連弩車完成，開始放箭' : '轟天砲完成，開始轟炸', 0); sfx('built'); break;
+    case 'built': burst(a.x, a.z, 1.5, 36, C_GOLD, 12, 0.5, 0.9, PF_ADD); ringFx(a.x, a.z, 5, C_GOLD, 0.5, true); if (a.kind !== 'sluice') say(a.kind === 'ballista' ? '連弩車完成，開始放箭' : '轟天砲完成，開始轟炸', 0); sfx('built'); break;
     case 'bhit': pt(SP_STAR, a.x, a.z, 1.4, 0, 0, 0, 0.12, 1.6, C_WHITE, PF_ADD | PF_SHRINK, 0, R01() * 3); sfx('feed'); break;
     case 'clank': if (R01() < 0.5) pt(SP_STAR, a, b, 1, 0, 0, 0, 0.12, 1.2, rgba(220, 230, 255, 255), PF_ADD | PF_SHRINK, 0, R01() * 3); sfx('clank'); break;
     case 'spark': burst(a, b, 2, 4, C_GOLD, 8, 0.35, 0.4, PF_ADD); break;
     case 'say': say(a, b); break;
     case 'win': FX.slowT = Math.max(FX.slowT, 0.9); FX.slow = 0.35; break;
+    /* ----- 赤門、陰陽門、水閘 ----- */
+    case 'rgh': if (R01() < 0.5) pt(SP_STAR, b, a.z - 0.3, 1 + R01() * 3, 0, 0, 0, 0.14, 2, rgba(255, 220, 150, 255), PF_ADD | PF_SHRINK, 0, R01() * 3); sfx('fh'); break;
+    case 'rgbreak':
+      banner('赤門已破', 'gold'); addShake(20); addFlash(0xffffff, 0.45); FX.slowT = 0.7; FX.slow = 0.35; FX.stop = 0.06;
+      for (let k = 0; k < 5; k++) explode(a.x + rnf(-a.w * 0.45, a.w * 0.45), a.z - rnf(0, 2), 4, 3);
+      for (let k = 0; k < 14; k++) { const an = R01() * TAU; pt(SP_ROCK, a.x + rnf(-a.w * 0.5, a.w * 0.5), a.z, rnf(2, 6), Math.cos(an) * rnf(3, 10), -rnf(2, 12), rnf(8, 18), 1.4, rnf(1, 2.2), C_WHITE, PF_BOUNCE, 26, R01() * 6, rnf(-8, 8)); }
+      if (b > 20) floatText(String(b), a.x, a.z, 4, 3, C_GOLD, 1.2);
+      sfx('fortdie'); vibrate(90); break;
+    case 'galt': if (a.m < 1) { pt(SP_PUFF, a.x, a.z, 2.5, 0, 0, 2, 0.3, 1.6, rgba(255, 80, 60, 220), PF_GROW, 0); sfx('bad'); } else { burst(a.x, a.z, 2.5, 10, rgba(120, 200, 255, 255), 8, 0.4, 0.5, PF_ADD); sfx('ghit', 16); } break;
+    case 'flood': banner(a.n === 1 ? '開閘放水' : '大水再臨', 'blue'); addShake(16); addFlash(0xbfe4ff, 0.3); FX.slowT = 0.35; FX.slow = 0.5; sfx('flood'); vibrate(120); break;
+    case 'floodend': if (a > 30) floatText(String(a), rcx(40), 40, 5, 3.6, rgba(150, 215, 255, 255), 1.4); break;
+    /* ----- 行軍玩法 ----- */
+    case 'arw': sfx('arw'); break;
+    case 'ghit':
+      if (R01() < 0.6) pt(SP_STAR, b, a.z, 2.2 + R01() * 1.5, 0, 0, 0, 0.12, 1.2, a.add < 0 ? rgba(255, 170, 150, 255) : rgba(170, 220, 255, 255), PF_ADD | PF_SHRINK, 0, R01() * 3);
+      sfx('ghit', a.add - a.add0); break;
+    case 'gadd':
+      if (b > 0) { burst(a.x, a.z, 1.5, 22, rgba(120, 200, 255, 255), 11, 0.45, 0.7, PF_ADD); floatText('+' + b, a.x, a.z, 4, 3, rgba(150, 215, 255, 255), 1); FX.armyPop = 1; sfx('rw'); }
+      else if (b < 0) { for (let k = 0; k < 8; k++) pt(SP_PUFF, a.x + rnf(-2, 2), a.z, 1, rnf(-2, 2), 0, rnf(1, 4), 0.4, 1.4, rgba(255, 80, 60, 220), PF_GROW, 0); floatText(String(b), a.x, a.z, 4, 3, C_RED, 1); addShake(6); sfx('bad'); vibrate(30); }
+      break;
+    case 'rw': {
+      const col = a.rw === 'troop' ? rgba(120, 200, 255, 255) : C_GOLD;
+      burst(a.x, a.z, 1.2, 20, col, 11, 0.45, 0.7, PF_ADD); ringFx(a.x, a.z, 3.4, col, 0.4, true);
+      for (let k = 0; k < 5; k++) pt(SP_PUFF, a.x + rnf(-0.6, 0.6), a.z, 0.8, rnf(-3, 3), rnf(-2, 2), rnf(2, 5), 0.5, 1.2, rgba(200, 150, 90, 230), PF_GROW, 0);
+      if (a.rw === 'troop') { floatText('+' + a.n, a.x, a.z, 3.4, 2.4, rgba(150, 215, 255, 255), 0.9); FX.armyPop = 1; sfx('rw'); }
+      else if (a.rw === 'bow') { say(S.sq.wpn >= 3 ? '連弩升到頂了，箭又快又密' : '撿到連弩，箭射得更快了', 0); sfx('rw'); }
+      else { banner(a.elite === 'mortar' ? '轟天砲助陣' : '連弩車助陣', 'gold'); addShake(8); sfx('built'); }
+      break;
+    }
+    case 'mfort': say('橋頭堡就在前面，兵力要比它多', 0); break;
+    case 'strafe': if (a.fly) { say('赤龍俯衝！離開火線', 1); sfx('warn2'); vibrate(30); } else sfx('warn2'); break;
+    case 'breath': addShake(12); addFlash(0xff7a20, 0.16); sfx('breath'); break;
+    case 'dragon': banner('赤龍', 'boss'); FX.dark = 1; addShake(20); sfx('warning'); speak('警告，赤龍來襲'); vibrate(200); say('對準牠放箭，火線亮起就閃開', 1); break;
+    case 'siege': banner('全軍衝鋒', 'gold'); addShake(10); sfx('horn'); vibrate(50); break;
+    case 'rescue':
+      banner('後軍趕到', 'gold'); ringFx(a, b, 8, C_GOLD, 0.5, true); addShake(12); addFlash(0xfff0b0, 0.25); sfx('hero'); vibrate(60); break;
     case 'lose': addShake(22); addFlash(0xff2010, 0.5); FX.slowT = 1.2; FX.slow = 0.3; sfx('lose0'); vibrate(200); break;
   }
 }
@@ -195,6 +241,24 @@ function fxStep(dt, rdt) {
     addShake(5);
   }
   if (FX.slowT > 0) { FX.slowT -= rdt; if (FX.slowT <= 0) FX.slow = 1; }
+  if (FX.armyPop > 0) FX.armyPop -= rdt * 5;
+  for (const f of S.strafes) {
+    if (f.t < f.warn || f.t > f.warn + f.dur) continue;
+    for (let k = Math.round((FX.low ? 5 : 12) * f.w / FIRE_W); k > 0; k--) {
+      const z = f.zf + rnf(0, FIRE_TRAIL), x = f.x + rnf(-0.5, 0.5) * f.w;
+      pt(R01() < 0.6 ? SP_SOFT : SP_PUFF, x, z, rnf(0.2, 1.2), rnf(-1, 1), rnf(-6, 2), rnf(3, 9), rnf(0.3, 0.55), rnf(1.4, 2.8), R01() < 0.6 ? rgba(255, 160, 40, 170) : rgba(255, 80, 20, 180), PF_ADD | PF_GROW, -4);
+    }
+  }
+  const fd = S.flood;
+  if (fd && fd.t < fd.dur) {
+    for (let k = 0; k < (FX.low ? 5 : 11); k++) {
+      const z = fd.zf + rnf(-0.5, 1.5), x = rcx(z) + rnf(-1, 1) * rhw(z);
+      pt(R01() < 0.6 ? SP_PUFF : SP_DOT, x, z, rnf(0.2, 1.5), rnf(-3, 3), rnf(-9, -3), rnf(4, 11), rnf(0.35, 0.7), rnf(0.6, 1.9), R01() < 0.5 ? rgba(235, 248, 255, 235) : rgba(130, 200, 255, 230), PF_GROW, 14);
+    }
+    addShake(7);
+  }
+  // 行軍關：世界往下捲了多少，粒子和浮字就跟著退多少
+  if (S.scrollAcc) { const dz = S.scrollAcc; S.scrollAcc = 0; for (let i = 0; i < pn; i++) pZ[i] -= dz; for (const f of FX.floats) f.z -= dz; }
   // 粒子
   for (let i = pn - 1; i >= 0; i--) {
     const life = pLife[i] - dt;

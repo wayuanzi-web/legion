@@ -1,7 +1,7 @@
 // node test/sweep1.js <level> <up> <flow[:speedMul[:giantMul]]...>  單一關卡：掃流量／行軍速度，看三種自動玩家的勝率／用時／城牆
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..', 'src', 'parts');
-const src = ['10-core.js', '50-sim.js', '60-levels.js', '65-bot.js'].map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
+const src = fs.readdirSync(dir).filter((f) => /^(10|50|52|53|60|65)-.*\.js$/.test(f)).sort().map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
   + '\nreturn {S, simInit, simStep, simUlt, makeBot, LEVELS, L};';
 const G = new Function(src)();
 const { S, simInit, simStep, makeBot, LEVELS } = G;
@@ -20,6 +20,7 @@ for (const spec of specs.length ? specs : [String(lv.flow)]) {
     let wins = 0, tsum = 0, wsum = 0, ks = 0, s3 = 0;
     for (let sd = 0; sd < N; sd++) {
       simInit(li, up, 700 + sd * 31 + li * 7, +(process.env.DIFF || 1));
+      if (process.env.NOFLOOD) for (const p of S.peds) if (p.kind === 'sluice') { p.kind = 'off'; p.built = true; p.cool = 1e9; p.x = 99; }      // 測「不放水」會怎樣
       const bot = makeBot(botName, rnd2);
       while (S.state === 'play' && S.time < 260) { bot(1 / 60); simStep(1 / 60); }
       if (S.state === 'won') { wins++; tsum += S.time; wsum += S.wallHp / S.wallMax; ks += S.kills; if (S.wallHp / S.wallMax >= 0.8) s3++; }

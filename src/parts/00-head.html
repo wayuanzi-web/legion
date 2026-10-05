@@ -58,6 +58,7 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
 .meter .track i { position: absolute; inset: 0; transform-origin: 0 50%; }
 #wallBar { background: linear-gradient(180deg, #9be28a, #3fae4e); }
 #wallBar.warn { background: linear-gradient(180deg, #ffb37a, #ee3b30); }
+#wallBar.road { background: linear-gradient(180deg, #a9d4ff, #3d86ff); }
 #heroBar { background: linear-gradient(180deg, var(--gold-lt), var(--gold)); }
 .meter.ready b { color: var(--gold); }
 #btnUlt { pointer-events: auto; position: relative; width: 78px; height: 78px; border-radius: 50%; display: grid; place-items: center;
@@ -81,17 +82,18 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
   background: repeating-linear-gradient(135deg, rgba(255, 200, 40, .0) 0 14px, rgba(255, 200, 40, .0) 14px 28px), linear-gradient(90deg, transparent, rgba(20, 0, 4, .78) 20%, rgba(20, 0, 4, .78) 80%, transparent); }
 #banner.boss small { color: var(--gold); }
 @keyframes banner { 0% { opacity: 0; transform: scale(1.7); } 12% { opacity: 1; transform: scale(1); } 78% { opacity: 1; transform: scale(1.03); } 100% { opacity: 0; transform: scale(1.1); } }
-#say { position: absolute; left: 50%; top: 21%; transform: translateX(-50%); padding: 6px 16px; font-weight: 700; font-size: 15px; letter-spacing: .08em; line-height: 1.4; text-align: center; text-wrap: balance; opacity: 0;
+#say { position: absolute; left: 50%; top: max(21%, 128px); transform: translateX(-50%); padding: 6px 16px; font-weight: 700; font-size: 15px; letter-spacing: .08em; line-height: 1.4; text-align: center; text-wrap: balance; opacity: 0;
   background: rgba(18, 12, 30, .86); --cut: 7px; width: max-content; max-width: calc(100% - 32px); }
 #say.show { animation: say 2.6s ease both; }
 #say.alert { color: #ffb0a2; box-shadow: inset 0 0 0 2px var(--red); background: rgba(60, 8, 10, .88); }
 @keyframes say { 0% { opacity: 0; transform: translate(-50%, -8px); } 10%, 82% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
-#mile { position: absolute; right: 12px; top: 104px; font-family: var(--f-display); font-weight: 900; font-size: 24px; letter-spacing: .12em; color: var(--gold-lt);
+#mile { position: absolute; right: 12px; top: 84px; font-family: var(--f-display); font-weight: 900; font-size: 24px; letter-spacing: .12em; color: var(--gold-lt);
   text-shadow: 0 2px 0 #3a2203, 0 0 14px rgba(255, 190, 40, .8); opacity: 0; transform-origin: 100% 50%; }
 #mile.show { animation: mile 1.5s ease both; }
 @keyframes mile { 0% { opacity: 0; transform: scale(2.2) rotate(-6deg); } 14% { opacity: 1; transform: scale(1) rotate(-6deg); } 80% { opacity: 1; transform: scale(1) rotate(-6deg); } 100% { opacity: 0; transform: scale(.9) rotate(-6deg); } }
 #hint { position: absolute; left: 50%; bottom: 22%; transform: translateX(-50%); padding: 8px 18px; font-weight: 700; letter-spacing: .1em; white-space: nowrap;
   background: rgba(18, 12, 30, .82); --cut: 8px; animation: nudge 1.1s ease-in-out infinite alternate; }
+#hint.up { bottom: 36%; }
 @keyframes nudge { from { transform: translateX(calc(-50% - 10px)); } to { transform: translateX(calc(-50% + 10px)); } }
 
 /* ---------- 主畫面 ---------- */
@@ -105,12 +107,16 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
 .logo .rule { height: 12px; margin: 4px auto 0; width: min(260px, 70%); position: relative; }
 .logo .rule::before { content: ""; position: absolute; left: 0; right: 0; top: 5px; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
 .logo .rule::after { content: ""; position: absolute; left: 50%; top: 0; width: 10px; height: 10px; margin-left: -5px; background: var(--gold); transform: rotate(45deg); box-shadow: 0 0 10px rgba(255, 200, 60, .8); }
+.screen > * { flex-shrink: 0; }      /* 塞不下就整頁捲動，不要互相壓到 */
 .spacer { flex: 1 1 0; min-height: 8px; }
-.lvls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; max-width: 420px; }
-.lv { position: relative; aspect-ratio: 1 / 1.22; display: grid; grid-template-rows: 1fr auto; place-items: center; padding: 6px 2px 7px; background: var(--line); --cut: 9px; transition: transform .12s ease; }
+.lvls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px 8px; width: 100%; max-width: 420px; }
+.chap { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .3em; color: var(--gold-lt); opacity: .92; margin-top: 2px; }
+.chap::before, .chap::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 201, 60, .55)); }
+.chap::after { transform: scaleX(-1); }
+.lv { position: relative; aspect-ratio: 1 / 1.02; display: grid; grid-template-rows: 1fr auto; place-items: center; padding: 6px 2px 7px; background: var(--line); --cut: 9px; transition: transform .12s ease; }
 .lv::before { content: ""; position: absolute; inset: 2px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); clip-path: inherit; }
 .lv > * { position: relative; }
-.lv b { font-family: var(--f-num); font-weight: 400; font-size: 30px; line-height: 1; color: var(--bone); }
+.lv b { font-family: var(--f-num); font-weight: 400; font-size: 26px; line-height: 1; color: var(--bone); }
 .lv .stars { font-size: 11px; letter-spacing: 1px; color: #5d5486; }
 .lv .stars em { font-style: normal; color: var(--gold); }
 .lv[aria-selected="true"] { background: var(--gold); transform: translateY(-5px) scale(1.06); }
@@ -125,7 +131,9 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
 .lvinfo p { margin: 6px auto 0; max-width: 22em; color: #cfc8e6; font-size: 14px; line-height: 1.5; text-wrap: balance; }
 .actions { width: 100%; max-width: 420px; display: grid; gap: 10px; }
 .actions .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 8px 14px; font-weight: 700; font-size: 16px; letter-spacing: .14em; text-indent: .14em;
+.webbar { position: absolute; left: 10px; right: 10px; top: 8px; display: flex; justify-content: space-between; pointer-events: none; }
+.btn.chip { pointer-events: auto; min-height: 36px; padding: 4px 12px; font-size: 13px; letter-spacing: .1em; text-indent: .1em; color: var(--gold-lt); --cut: 7px; }
+.btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 8px 14px; font-weight: 700; font-size: 16px; letter-spacing: .14em; text-indent: .14em; white-space: nowrap;
   color: var(--bone); background: var(--line); --cut: 9px; clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut)); transition: transform .08s ease, filter .08s ease; }
 .btn::before { content: ""; position: absolute; inset: 2px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); clip-path: inherit; }
 .btn > * , .btn { z-index: 0; } .btn span, .btn b, .btn em { position: relative; }
@@ -180,6 +188,13 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
 .seg button { min-height: 36px; padding: 4px 2px; font-weight: 700; font-size: 14px; letter-spacing: .08em; color: var(--mute); background: #40376a; }
 .seg button[aria-pressed="true"] { color: var(--gold-ink); background: linear-gradient(180deg, #ffe07a, #ffb81f); }
 .textbtn { color: var(--mute); font-size: 13px; letter-spacing: .1em; text-decoration: underline; text-underline-offset: 3px; padding: 8px; justify-self: center; }
+@media (max-height: 620px) {
+  .screen { gap: 9px; padding-top: 12px; padding-bottom: 12px; }
+  .logo { margin-top: 0; } .logo h1 { font-size: clamp(40px, 13.5vmin, 64px); }
+  .lvinfo { min-height: 78px; padding: 7px 12px 9px; } .lvinfo h2 { font-size: 24px; }
+  .btn.big { min-height: 54px; font-size: 24px; } .btn { min-height: 44px; } .btn.chip { min-height: 30px; padding: 2px 9px; font-size: 12px; } .webbar { top: 6px; left: 8px; right: 8px; }
+  #home.web .logo .tagline { display: none; } #home.web .logo { margin-top: 26px; }      /* 矮螢幕：標題整個排在左右上角兩顆按鈕的下面，換什麼字型都不會碰到 */
+}
 #rotate { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: var(--ink); font-weight: 700; letter-spacing: .12em; z-index: 9; }
 @media (prefers-reduced-motion: reduce) { #btnUlt.ready, #hint { animation: none; } }
 </style>
@@ -202,7 +217,7 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
       <div class="hud-bot">
         <div class="meters">
           <div class="meter" id="heroMeter"><span>大將</span><div class="track chamfer"><i id="heroBar"></i></div><b id="heroNum"></b></div>
-          <div class="meter"><span>城牆</span><div class="track chamfer"><i id="wallBar"></i></div><b id="wallNum">30</b></div>
+          <div class="meter"><span id="wallLbl">城牆</span><div class="track chamfer"><i id="wallBar"></i></div><b id="wallNum">30</b></div>
         </div>
         <button id="btnUlt" aria-label="萬箭齊發"><span>箭雨<small id="ultNum">0%</small></span></button>
       </div>
@@ -269,7 +284,7 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
         <dl class="stats">
           <div><dt>擊殺</dt><dd id="rsKills">0</dd></div>
           <div><dt>最大兵力</dt><dd id="rsArmy">0</dd></div>
-          <div><dt>我軍陣亡</dt><dd id="rsLost">0</dd></div>
+          <div><dt id="rsLostL">我軍陣亡</dt><dd id="rsLost">0</dd></div>
           <div><dt>用時</dt><dd id="rsTime">0:00</dd></div>
         </dl>
         <div class="gain"><span>戰利品</span><em class="coin" id="rsCoins">+0</em></div>

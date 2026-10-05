@@ -54,7 +54,10 @@ const S = {
   cata: { iv: 0, t: 0 },
   kills: 0, lost: 0, shots: 0, maxArmy: 0, coinsBig: 0,
   redMinZ: L, front: L, evi: 0, endT: 0, boss: null, bossDone: false, gateSeq: 0,
-  up: { rate: 0, armor: 0, hero: 0, ult: 0, wall: 0 }, diff: null
+  up: { rate: 0, armor: 0, hero: 0, ult: 0, wall: 0 }, diff: null,
+  // mode 0 = 破陣（兵砲對赤潮）、1 = 行軍（帶隊過橋，見 52-march）
+  mode: 0, fz: L, xLim: CAN_LIM, ctlZ: CANZ, scrollAcc: 0, sq: null, mf: null, track: null, ti: 0,
+  holes: [], saws: [], strafes: [], rgates: [], flood: null, survive: 0
 };
 
 function ev(a, b, c, d, e, f, g, h, i, j) { if (S.on) S.on(a, b, c, d, e, f, g, h, i, j); }
@@ -70,7 +73,7 @@ function seaSpd(z, lv) {
   return lerp(vC, vC * 1.6, clamp((27 - z) / 9, 0, 1));
 }
 function seaDen(z, lv) { return lv.flow * S.diff.flow / (seaSpd(z, lv) * 2 * (rhw(z) - LANE_PAD)); }
-function buildSpeeds(lv) { for (let i = 0; i < RN; i++) vTab[i] = seaSpd(ZMIN + i * RDZ, lv); }
+function buildSpeeds(lv) { if (lv.mode === 'march') { vTab.fill(0); return; } for (let i = 0; i < RN; i++) vTab[i] = seaSpd(ZMIN + i * RDZ, lv); }
 
 /* ---------- 生成 ---------- */
 function addBlue(x, z, y, vy, vl, mask) {
@@ -170,9 +173,9 @@ function hurtBig(b, dmg) {
   if (b.hp <= 0) {
     b.dead = true; b.hp = 0;
     if (b.team === 1) {
-      S.kills++; S.coinsBig += b.kind === 'boss' ? 200 : b.kind === 'giant' ? 20 : 3;
+      S.kills++; S.coinsBig += b.kind === 'boss' ? 200 : b.kind === 'dragon' ? 300 : b.kind === 'giant' ? 20 : 3;
       ev('bigdie', b);
-      if (b.kind === 'boss') { S.boss = null; S.bossDone = true; winNow(); }
+      if (b.kind === 'boss' || b.kind === 'dragon') { S.boss = null; S.bossDone = true; winNow(); }
     }
   }
 }
@@ -185,7 +188,7 @@ function blastBigs(team, x, z, rad, dmg) {
   }
 }
 function wallHit(dmg, x) {
-  if (S.state !== 'play') return;
+  if (S.state !== 'play' || S.mode) return;
   S.wallHp -= dmg; ev('wall', x, dmg);
   if (S.wallHp <= 0) { S.wallHp = 0; S.state = 'lost'; S.endT = 0; ev('lose'); return; }
   // 城牆剩一半時，守軍點燃烽火反擊一次：把前庭的赤潮整片燒退
@@ -203,7 +206,9 @@ function stepBurn(dt) {
 }
 function winNow() {
   if (S.state !== 'play') return;
-  S.state = 'won'; S.endT = 0; ev('win');
+  S.state = 'won'; S.endT = 0; S.strafes.length = 0;
+  { const b = S.B; let n = 0; for (let i = 0; i < b.n; i++) if (b.hp[i] > 0) n++; S.survive = n; }
+  ev('win');
 }
 // 敵城的數字是「兵力」：每湧出一個兵就少一點，我軍衝進城門也會扣。
 // 光靠出兵只會降到 floor（守門的最後一批），剩下的一定要我軍殺進去才算攻破。
@@ -257,12 +262,16 @@ function simInit(idx, up, seed, diff) {
   S.cata = { iv: lv.cata || 0, t: (lv.cata || 0) * 0.6 };
   S.kills = 0; S.lost = 0; S.shots = 0; S.maxArmy = 0; S.coinsBig = 0; S.evi = 0;
   S.redMinZ = L; S.front = L; S.boss = null; S.bossDone = false; S.gateSeq = 0;
+  S.mode = 0; S.fz = L; S.xLim = CAN_LIM; S.ctlZ = CANZ; S.scrollAcc = 0; S.sq = null; S.mf = null; S.track = null; S.ti = 0;
+  S.holes = []; S.saws = []; S.strafes = []; S.rgates = []; S.flood = null; S.survive = 0; S.blueMaxZ = 0;
+  if (lv.mode === 'march') { S.gates = []; S.peds = []; S.barrels = []; marchInit(lv, up); buildGrid(S.R); buildGrid(S.B); return; }
   S.gates = []; for (const g of lv.gates) addGate(g);
-  S.peds = (lv.peds || []).map((p) => ({ x: p.x, z: p.z, r: 1.7, need: p.need, got: 0, built: false, kind: p.kind, cool: 1, aim: 0, kick: 0, flash: 0 }));
+  S.peds = (lv.peds || []).map((p) => ({ x: p.x, z: p.z, r: 1.7, need: p.need, got: 0, built: false, kind: p.kind, cool: 1, aim: 0, kick: 0, flash: 0, step: p.step || 0 }));
+  if (lv.rgates) S.rgates = lv.rgates.map(addRGate);
   S.barrels = (lv.barrels || []).map((b) => ({ t: b.t, z: b.z, x: laneX(b.t, b.z), hp: b.hp || 8, max: b.hp || 8, alive: true, fuse: -1, flash: 0 }));
   // 開局的赤潮：從敵城一路鋪到戰線起點，用抖動過的格點排，才不會有空洞
   for (let z = lv.front0; z < L - 0.8;) {
-    const d = seaDen(z, lv), dz = 1.25 / Math.sqrt(d), w = 2 * (rhw(z) - LANE_PAD);
+    const d = seaDen(z, lv) * (S.rgates.length ? rgMul(z) : 1), dz = 1.25 / Math.sqrt(d), w = 2 * (rhw(z) - LANE_PAD);
     let c = d * w * dz; c = (c | 0) + (rnd() < c - (c | 0) ? 1 : 0);
     const off = rnd();
     for (let k = 0; k < c; k++) {
@@ -280,6 +289,13 @@ function addGate(g) {
     amp: g.amp || 0, per: g.per || 6, ph: g.ph || 0, cap: g.cap || 1e9, cap0: g.cap || 0, life: g.life || 1e9, alive: true,
     flash: 0, cnt: 0, born: S.time, sp: (0.7 + 0.65 * Math.sqrt(Math.max(1, g.m))) / POP_T
   };
+  if (g.add !== undefined) { o.add = g.add; o.add0 = g.add; o.max = g.max === undefined ? Math.max(g.add, 0) + 30 : g.max; o.kind = 3; }
+  if (g.alt) { o.alt = g.alt; o.m0 = g.m; }
+  if (S.mode) {
+    // 行軍關一路上會遇到很多道門，編號循環使用，所以新門上場時要把舊記號洗掉
+    o.zp = o.z; const b = S.B, nb = ~o.bit;
+    for (let i = 0; i < b.n; i++) b.gate[i] &= nb;
+  }
   S.gates.push(o); return o;
 }
 
@@ -338,7 +354,7 @@ function passGate(i, g) {
 function stepBlue(dt) {
   const b = S.B, r = S.R, n = b.n, fr = S.frame, minZ = S.redMinZ;
   const rst = r.start, ritems = r.items, rhp = r.hp, rxx = r.x, rzz = r.z;
-  const gates = S.gates, peds = S.peds, bars = S.barrels, armor = S.armor;
+  const gates = S.gates, peds = S.peds, bars = S.barrels, armor = S.armor, rgs = S.rgates, nrg = rgs.length;
   let gz0 = 1e9, gz1 = -1e9;
   for (let k = 0; k < gates.length; k++) { const g = gates[k]; if (g.alive) { if (g.z < gz0) gz0 = g.z; if (g.z > gz1) gz1 = g.z; } }
   let maxZ = -1e9;
@@ -393,6 +409,10 @@ function stepBlue(dt) {
       }
     }
     if (b.hp[i] <= 0) continue;
+    if (nrg) {
+      for (let k = 0; k < nrg; k++) { const g = rgs[k]; if (g.alive && zp < g.z && z >= g.z - 0.5) { b.hp[i] = 0; hitRGate(g, 1, x); break; } }
+      if (b.hp[i] <= 0) continue;
+    }
 
     if (z > minZ - 1.3 && y < 1.3) {
       let gx = (x - GX0) | 0, gz = (z - GZ0) | 0;
@@ -418,7 +438,7 @@ function stepBlue(dt) {
       }
       if (b.hp[i] <= 0) continue;
     }
-    if (z >= L - 1) {
+    if (z >= S.fz - 1) {
       b.hp[i] = 0;
       if (S.fort.alive) fortHit(1, x);
     }
@@ -429,13 +449,17 @@ function stepBlue(dt) {
 
 /* ---------- 每幀：赤潮 ---------- */
 function stepRed(dt) {
-  const r = S.R, n = r.n, mul = S.redMul; let minZ = 1e9;
+  const r = S.R, n = r.n, mul = S.redMul, rgs = S.rgates, nrg = rgs.length; let minZ = 1e9;
   for (let i = 0; i < n; i++) {
     if (r.hp[i] <= 0) continue;
     let f = (r.z[i] - ZMIN) / RDZ; if (f < 0) f = 0; else if (f > RN - 1) f = RN - 1;
     const z = r.z[i] - (r.kind[i] === 1 ? r.spd[i] : r.spd[i] * vTab[f | 0] * mul) * dt;
     let t = r.t[i]; const tt = r.sk[i];
     if (tt === tt) { const d = tt - t, m = 0.3 * dt; if (d > m) t += m; else if (d < -m) t -= m; else { t = tt; r.sk[i] = NaN; } r.t[i] = t; }
+    if (nrg) {
+      const zp = r.z[i];
+      for (let k = 0; k < nrg; k++) { const g = rgs[k]; if (g.alive && zp > g.z && z <= g.z && !(r.gate[i] & g.bit)) { r.gate[i] |= g.bit; redGatePass(i, g, t, z); } }
+    }
     r.x[i] = rcx(z) + t * (rhw(z) - LANE_PAD); r.z[i] = z;
     if (z < minZ) minZ = z;
     if (r.fl[i] > 0) r.fl[i]--;
@@ -461,7 +485,7 @@ function bigVsSoldiers(o, capN, kb) {
       if (dx * dx + dz * dz < r2) {
         if (o.team) killBlue(j, 5, x, z, 5); else killRed(j, 1, x, z, 9);
         k++;
-        if (o.team) { o.z = Math.min(o.z + kb, L - 3); hurtBig(o, 1); if (o.dead) return k; }
+        if (o.team) { o.z = Math.min(o.z + kb, S.fz - 3); hurtBig(o, 1); if (o.dead) return k; }
         if (k >= capN) return k;
       }
     }
@@ -475,6 +499,8 @@ function stepBigs(dt) {
     o.anim += dt; if (o.flash > 0) o.flash -= dt;
     if (o.kind === 'hero') { stepHero(o, dt); continue; }
     if (o.kind === 'boss') { stepBoss(o, dt); continue; }
+    if (o.kind === 'dragon') { stepDragonBoss(o, dt); continue; }
+    if (o.hush && o.z < 84) { o.hush = false; ev('big', o); }
     // 蠻兵、巨魔
     const giant = o.kind === 'giant';
     if (o.st === 'smash') {
@@ -488,13 +514,14 @@ function stepBigs(dt) {
       continue;
     }
     o.z -= o.spd * dt; o.x = laneX(o.t, o.z);
+    if (S.mode && o.z < MZ_OUT) { o.dead = true; continue; }
     bigVsSoldiers(o, giant ? 6 : 4, giant ? 0.03 : 0.13);
     if (o.dead) continue;
     if (giant) {
       o.cd -= dt;
       if (o.cd <= 0 && countIn(S.B, o.x, o.z - 1.2, 3.7) >= 6) { o.st = 'smash'; o.tm = 0.55; ev('windup', o); }
     }
-    if (o.z <= WALLZ + 1.4 + o.r * 0.4) { o.dead = true; ev('bigwall', o); wallHit(giant ? 12 : 3, o.x); }
+    if (!S.mode && o.z <= WALLZ + 1.4 + o.r * 0.4) { o.dead = true; ev('bigwall', o); wallHit(giant ? 12 : 3, o.x); }
   }
   for (let i = bs.length - 1; i >= 0; i--) if (bs[i].dead) bs.splice(i, 1);
 }
@@ -525,6 +552,8 @@ function stepHero(o, dt) {
     const dx = tgt.x - o.x, dz = tgt.z - o.z, reach = o.r + tgt.r + 0.2;
     if (dx * dx + dz * dz < reach * reach) {
       fighting = true; hurtBig(tgt, 110 * dt); o.hitT = (o.hitT || 0) - dt;
+      // 行軍關：咬住對手，跟著牠一路退向隊伍（不然世界一捲，巨魔半秒就從大將身邊擦過去了）
+      if (S.mode && !tgt.fixed) o.z = Math.max(MZ_REAR + 1, o.z - (S.sq.v + (tgt.st === 'smash' ? 0 : tgt.spd)) * dt);
       if (o.hitT <= 0) { o.hitT = 0.22; ev('herohit', (o.x + tgt.x) / 2, (o.z + tgt.z) / 2); }
     } else {
       const hwE = rhw(o.z) - LANE_PAD; const m = 5 * dt;
@@ -532,7 +561,8 @@ function stepHero(o, dt) {
     }
   }
   if (!fighting) o.z += 5 * dt;
-  if (o.z > L - 2.2) { o.z = L - 2.2; if (S.fort.alive) { o.fa = (o.fa || 0) + 30 * dt; while (o.fa >= 1) { o.fa--; fortHit(1, o.x); } } }
+  for (const g of S.rgates) if (g.alive && o.z > g.z - 1.6 && o.z < g.z + 2) { o.z = g.z - 1.6; o.fa = (o.fa || 0) + 30 * dt; while (o.fa >= 1) { o.fa--; hitRGate(g, 1, o.x); } }
+  if (o.z > S.fz - 2.2) { o.z = S.fz - 2.2; if (S.fort.alive && (!S.mode || S.sq.siege)) { o.fa = (o.fa || 0) + 30 * dt; while (o.fa >= 1) { o.fa--; fortHit(1, o.x); } } }      // 行軍關要等全軍衝鋒才砍城門
   o.x = laneX(o.t, o.z);
   bigVsSoldiers(o, 60, 0);
   if (o.life <= 0 || S.state !== 'play') {
@@ -599,6 +629,7 @@ function stepPeds(dt) {
     const p = ps[i];
     if (p.flash > 0) p.flash -= dt * 4; if (p.kick > 0) p.kick -= dt * 5;
     if (!p.built) continue;
+    if (p.kind === 'sluice') { startFlood(p); p.built = false; p.got = 0; p.need += p.step; continue; }
     p.cool -= dt; if (p.cool > 0) continue;
     if (p.kind === 'ballista') {
       let tx = NaN, tz = NaN;
@@ -624,6 +655,7 @@ function stepProj(dt) {
   const ps = S.proj;
   for (let i = ps.length - 1; i >= 0; i--) {
     const p = ps[i];
+    if (p.kind === 'arrow') { if (stepArrow(p, dt)) ps.splice(i, 1); continue; }
     if (p.kind === 'bolt') {
       // 一幀飛將近 1 格，分兩段掃才不會穿過去沒打到
       for (let sub = 0; sub < 2 && p.pierce > 0; sub++) {
@@ -637,7 +669,7 @@ function stepProj(dt) {
         }
       }
       p.life -= dt;
-      if (p.pierce <= 0 || p.life <= 0 || p.z > L || p.z < 0) ps.splice(i, 1);
+      if (p.pierce <= 0 || p.life <= 0 || p.z > (S.mode ? L + 12 : L) || p.z < 0) ps.splice(i, 1);
     } else {
       p.t += dt; const q = Math.min(1, p.t / p.dur);
       p.x = lerp(p.x0, p.x1, q); p.z = lerp(p.z0, p.z1, q); p.y = (p.h || 14) * 4 * q * (1 - q) + (p.y0 || 0) * (1 - q);
@@ -666,11 +698,12 @@ function stepBarrels(dt) {
       q.fuse -= dt;
       if (q.fuse <= 0) {
         q.alive = false;
-        const k = blast(1, q.x, q.z, 5.6, 400, 1, 15); blast(0, q.x, q.z, 3.2, 60, 1, 12);
-        blastBigs(1, q.x, q.z, 5.6, 60);
-        ev('boom', q.x, q.z, 5.6, k, 3);
+        const rad = S.mode ? 8.5 : 5.6;      // 行軍關的火藥桶擺在敵陣前面，炸得遠一點才夠得到
+        const k = blast(1, q.x, q.z, rad, 400, 1, 15); blast(0, q.x, q.z, 3.2, 60, 1, 12);
+        blastBigs(1, q.x, q.z, rad, 60);
+        ev('boom', q.x, q.z, rad, k, 3);
         for (let j = 0; j < bs.length; j++) {
-          const o = bs[j]; if (!o.alive || o.fuse >= 0) continue;
+          const o = bs[j]; if (!o.alive || o.fuse >= 0 || (o.rw && o.rw !== 'tnt')) continue;
           const dx = o.x - q.x, dz = o.z - q.z;
           if (dx * dx + dz * dz < 81) o.fuse = 0.18 + rnd() * 0.12;
         }
@@ -688,8 +721,10 @@ function throwAt(kind, sx, sz, sy, tx, tz, rad, dur) {
 function simUlt() {
   const u = S.ult;
   if (S.state !== 'play' || u.active || u.charge < u.need) return false;
+  if (S.mode && S.front > 96) return false;      // 行軍途中前面沒有敵人，留著不放
   u.active = true; u.t = 0; u.killed = 0; u.charge = 0; u.uses++;
-  u.z0 = Math.max(1.5, S.front - 3); u.z1 = Math.min(L - 1, u.z0 + 32);
+  u.z0 = Math.max(1.5, S.front - 3); u.z1 = Math.min(S.mode ? L + 8 : L - 1, u.z0 + 32);
+  if (S.mode && S.boss && S.boss.fixed && u.z1 < S.boss.z + 1) u.z1 = S.boss.z + 1;      // 屠龍戰：狼騎貼到隊頭時放的箭雨也要掃得到赤龍
   for (const b of S.bigs) b.ulted = false;
   ev('ult', u.z0, u.z1);
   return true;
@@ -704,7 +739,7 @@ function stepUlt(dt) {
     if (z <= zw && z >= u.z0 - 4) { killRed(j, 2, r.x[j], z, 0); u.killed++; frameK++; }
   }
   for (const b of S.bigs) {
-    if (b.team === 1 && !b.dead && !b.ulted && b.z <= zw && b.z >= u.z0 - 4) { b.ulted = true; hurtBig(b, b.maxHp * (b.kind === 'boss' ? 0.06 : 0.3)); }
+    if (b.team === 1 && !b.dead && !b.ulted && b.z <= zw && b.z >= u.z0 - 4) { b.ulted = true; hurtBig(b, b.maxHp * (b.kind === 'boss' || b.kind === 'dragon' ? 0.06 : 0.3)); }
   }
   if (p >= 1 || u.killed >= u.cap) { u.active = false; ev('ultend', u.killed); }
 }
@@ -756,21 +791,46 @@ function stepGates(dt) {
     if (g.flash > 0) g.flash -= dt * 5;
     if (!g.alive) { g.gone = (g.gone || 0) + dt; if (g.gone > 0.6) gs.splice(i, 1); continue; }
     if (g.amp) g.x = g.x0 + g.amp * tri((S.time - g.born) / g.per + g.ph);
+    if (g.alt) stepAltGate(g);
     if (g.life < 1e9) { g.life -= dt; if (g.life <= 0) { g.alive = false; ev('gend', g); } }
   }
+}
+// 戰線：從我方算起，赤潮累積到 12 人的那一排；人少的時候就看最前面的殘兵與大傢伙
+// 行軍關的戰線只看隊頭前面：被繞過、落在隊伍旁邊或後面的零星敵人不算（不然箭雨會白白打在牠們身上）；
+// 還在飛進場的赤龍也不算。攻城時兩軍混在一起，照破陣玩法從最底下算起
+const frontCnt = new Uint16Array(GH);
+function calcFrontMarch() {
+  const q = S.sq, r = S.R, n = r.n, z0 = q.siege ? -1e9 : q.front - 2.5, xl = q.x - q.a - 1.2, xr = q.x + q.a + 1.2, cnt = frontCnt;
+  let tot = 0; cnt.fill(0);
+  for (let j = 0; j < n; j++) {
+    if (r.hp[j] <= 0) continue;
+    const z = r.z[j];
+    // 隊頭前面的都算；隊身這一段只算真的咬進隊伍裡的（橫向落在隊伍寬度內），從兩旁擦身而過的不算
+    if (z < z0 && (z < 0 || r.x[j] < xl || r.x[j] > xr)) continue;
+    let g = (z - GZ0) | 0; if (g < 0) g = 0; else if (g >= GH) g = GH - 1;
+    cnt[g]++; tot++;
+  }
+  // 要成群才算戰線（免得箭雨、大將浪費在一兩個殘兵身上）；自己人少的時候，幾個敵人也算
+  const need = Math.min(12, Math.max(4, (S.B.n / 3) | 0));
+  let f = L;
+  if (tot >= need) { let acc = 0; for (let g = 0; g < GH; g++) { acc += cnt[g]; if (acc >= need) { f = g + GZ0; break; } } }
+  for (const b of S.bigs) if (b.team === 1 && !b.dead && (b.kind !== 'dragon' || b.fixed) && b.z + b.r >= z0 && b.z - b.r < f) f = Math.max(Math.floor(b.z - b.r), q.siege ? 0 : Math.floor(z0));
+  S.front = f;
+}
+function calcFront() {
+  if (S.mode) { calcFrontMarch(); return; }
+  const rows = S.R.rows; let acc = 0, f = L;
+  for (let g = 0; g < GH; g++) { acc += rows[g]; if (acc >= 12) { f = g + GZ0; break; } }
+  if (acc < 12 && S.redMinZ < f) f = Math.floor(S.redMinZ);
+  for (const b of S.bigs) if (b.team === 1 && !b.dead && b.z - b.r < f) f = Math.floor(b.z - b.r);
+  S.front = f;
 }
 function simStep(dt) {
   if (S.state === 'idle') return;
   S.frame++; S.time += dt;
   buildGrid(S.R); buildGrid(S.B);
-  // 戰線：從我方算起，赤潮累積到 12 人的那一排；人少的時候就看最前面的殘兵與大傢伙
-  {
-    const rows = S.R.rows; let acc = 0, f = L;
-    for (let g = 0; g < GH; g++) { acc += rows[g]; if (acc >= 12) { f = g + GZ0; break; } }
-    if (acc < 12 && S.redMinZ < f) f = Math.floor(S.redMinZ);
-    for (const b of S.bigs) if (b.team === 1 && !b.dead && b.z - b.r < f) f = Math.floor(b.z - b.r);
-    S.front = f;
-  }
+  calcFront();
+  if (S.mode) { marchStep(dt); return; }
   const playing = S.state === 'play';
   if (playing) {
     runScript(dt);
@@ -803,6 +863,8 @@ function simStep(dt) {
   stepProj(dt);
   stepUlt(dt);
   stepBurn(dt);
+  if (S.flood) stepFlood(dt);
+  for (const g of S.rgates) { if (g.flash > 0) g.flash -= dt * 5; if (!g.alive && g.gone < 1) g.gone += dt; }
   if (S.fort.flash > 0) S.fort.flash -= dt * 6;
 
   if (S.state === 'won') {

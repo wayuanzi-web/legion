@@ -336,6 +336,98 @@ function artBarrel(c) {
   // 火焰記號
   c.beginPath(); c.moveTo(40, 38); c.quadraticCurveTo(52, 50, 46, 60); c.quadraticCurveTo(40, 66, 34, 60); c.quadraticCurveTo(28, 50, 40, 38); c.closePath(); fs(c, '#ffd43b', '#b3540a', 2.5);
 }
+/* ---------- 赤龍（從上往下看：頭朝下，身體是一節一節的） ---------- */
+function artDragonHead(c) {
+  // 200×224
+  const ink = '#3a060b';
+  for (const k of [-2, -1, 0, 1, 2]) { poly(c, [100 + k * 20 - 15, 74, 100 + k * 27, 10 + Math.abs(k) * 13, 100 + k * 20 + 15, 74]); fs(c, lg(c, 0, 10, 0, 74, [0, '#ffe07a', 1, '#f08a2a']), '#8a3a08', 3); }
+  for (const sd of [-1, 1]) {
+    c.beginPath(); c.moveTo(100 + sd * 28, 82); c.quadraticCurveTo(100 + sd * 80, 66, 100 + sd * 90, 12); c.quadraticCurveTo(100 + sd * 60, 46, 100 + sd * 44, 60); c.closePath();
+    fs(c, lg(c, 0, 12, 0, 82, [0, '#fff6cf', 1, '#d9a441']), '#6b4a1e', 3);
+    poly(c, [100 + sd * 64, 46, 100 + sd * 98, 46, 100 + sd * 70, 60]); fs(c, '#f3dc9a', '#6b4a1e', 2.5);
+  }
+  c.beginPath(); c.moveTo(50, 88); c.quadraticCurveTo(56, 54, 100, 52); c.quadraticCurveTo(144, 54, 150, 88); c.quadraticCurveTo(154, 130, 134, 162); c.quadraticCurveTo(126, 200, 100, 206); c.quadraticCurveTo(74, 200, 66, 162); c.quadraticCurveTo(46, 130, 50, 88); c.closePath();
+  fs(c, rg(c, 92, 92, 6, 112, [0, '#ff6a50', 0.6, '#d22a24', 1, '#8f141b']), ink, 5);
+  c.strokeStyle = 'rgba(60,0,6,.4)'; c.lineWidth = 3;
+  for (let k = 0; k < 3; k++) { c.beginPath(); c.arc(100, 96 + k * 20, 13 - k * 2, Math.PI * 1.1, Math.PI * 1.9); c.stroke(); }
+  for (const sd of [-1, 1]) {
+    poly(c, [100 + sd * 14, 108, 100 + sd * 46, 90, 100 + sd * 48, 112, 100 + sd * 20, 124]); fs(c, '#ffe14d', ink, 3);
+    ell(c, 100 + sd * 33, 108, 4, 7); fs(c, '#1a0608');
+    poly(c, [100 + sd * 8, 100, 100 + sd * 52, 78, 100 + sd * 56, 90, 100 + sd * 12, 110]); fs(c, '#8f141b', ink, 2.5);
+  }
+  ell(c, 100, 182, 25, 19); fs(c, lg(c, 0, 164, 0, 200, [0, '#f0483a', 1, '#b51d1d']), ink, 4);
+  c.fillStyle = '#1a0608'; ell(c, 91, 188, 4, 3); c.fill(); ell(c, 109, 188, 4, 3); c.fill();
+  c.fillStyle = '#fff8e6'; for (const sd of [-1, 1]) for (let k = 0; k < 3; k++) { poly(c, [100 + sd * (30 + k * 3), 150 + k * 12, 100 + sd * (40 + k * 2), 158 + k * 12, 100 + sd * (28 + k * 3), 162 + k * 12]); c.fill(); }
+  for (const sd of [-1, 1]) {
+    c.beginPath(); c.moveTo(100 + sd * 22, 178); c.bezierCurveTo(100 + sd * 62, 184, 100 + sd * 84, 150, 100 + sd * 94, 204);
+    c.strokeStyle = '#8a3a08'; c.lineWidth = 8; c.stroke(); c.strokeStyle = '#ffd35a'; c.lineWidth = 4.5; c.stroke();
+  }
+}
+function artDragonBody(c) {
+  // 128×128：一節身體
+  const ink = '#3a060b';
+  ell(c, 64, 64, 55, 55); fs(c, rg(c, 54, 52, 6, 62, [0, '#ff6a50', 0.65, '#cf2a24', 1, '#8f141b']), ink, 5);
+  c.strokeStyle = 'rgba(60,0,6,.4)'; c.lineWidth = 3;
+  for (const p of [[40, 44], [88, 44], [30, 70], [98, 70], [44, 94], [84, 94]]) { c.beginPath(); c.arc(p[0], p[1], 11, Math.PI * 0.1, Math.PI * 0.9); c.stroke(); }
+  for (const sd of [-1, 1]) { c.beginPath(); c.arc(64 + sd * 6, 64, 46, sd > 0 ? -0.5 : Math.PI - 0.5, sd > 0 ? 0.5 : Math.PI + 0.5); c.strokeStyle = 'rgba(255,220,170,.4)'; c.lineWidth = 5; c.stroke(); }
+  poly(c, [64, 14, 84, 64, 64, 114, 44, 64]); fs(c, lg(c, 0, 14, 0, 114, [0, '#ffe07a', 1, '#f08a2a']), '#8a3a08', 3.5);
+  c.fillStyle = 'rgba(255,255,255,.5)'; poly(c, [64, 22, 74, 62, 64, 62]); c.fill();
+}
+/* ---------- 行軍關的道具 ---------- */
+function artCask(c) {
+  // 80×96：裝著援兵或武器的木桶
+  shadow(c, 40, 86, 30, 9);
+  rrect(c, 12, 16, 56, 70, 14); fs(c, lg(c, 12, 0, 68, 0, [0, '#5c3a1c', 0.4, '#c8935a', 1, '#4a2c12']), '#24130a', 4);
+  c.strokeStyle = 'rgba(40,20,6,.38)'; c.lineWidth = 2; for (const x of [26, 40, 54]) { c.beginPath(); c.moveTo(x, 22); c.lineTo(x, 84); c.stroke(); }
+  for (const y of [27, 67]) { rrect(c, 10, y, 60, 8, 3); fs(c, lg(c, 10, 0, 70, 0, [0, '#4d5563', 0.4, '#b4bac6', 1, '#3d4350']), '#14161c', 2.5); }
+  c.beginPath(); c.ellipse(40, 18, 27, 9, 0, 0, TAU); fs(c, '#9a6a36', '#24130a', 3.5);
+}
+function artBowIcon(c) {
+  // 96×96：連弩（武器升級）
+  c.save(); c.translate(48, 50); c.rotate(-0.62);
+  rrect(c, -5, -30, 10, 66, 4); fs(c, lg(c, -5, 0, 5, 0, [0, '#1b46b8', 0.5, '#6fb0ff', 1, '#1b46b8']), PAL.blueInk, 3);
+  c.beginPath(); c.moveTo(-36, -8); c.quadraticCurveTo(0, -44, 36, -8); c.quadraticCurveTo(0, -26, -36, -8); c.closePath(); fs(c, lg(c, 0, -40, 0, -8, [0, '#bfe0ff', 1, '#2f7bff']), PAL.blueInk, 3);
+  c.strokeStyle = '#eaf4ff'; c.lineWidth = 2.2; c.beginPath(); c.moveTo(-34, -8); c.lineTo(0, 12); c.lineTo(34, -8); c.stroke();
+  rrect(c, -2.4, -44, 4.8, 50, 2); fs(c, '#ffffff', '#2b3a55', 1.6); poly(c, [-7, -40, 0, -56, 7, -40]); fs(c, '#ffffff', '#2b3a55', 2);
+  rrect(c, -9, 24, 18, 9, 3); fs(c, PAL.gold, PAL.goldInk, 2.5);
+  c.restore();
+}
+function artCage(c) {
+  // 144×144：關著機關車的木籠，木條之間是透空的
+  c.strokeStyle = '#24130a'; c.lineWidth = 3.5;
+  for (let k = 0; k < 6; k++) { const x = 16 + k * 22.4; rrect(c, x - 4.5, 22, 9, 104, 3); fs(c, lg(c, x - 4.5, 0, x + 4.5, 0, [0, '#5c3a1c', 0.5, '#c8935a', 1, '#4a2c12']), '#24130a', 2.5); }
+  for (const y of [14, 122]) { rrect(c, 6, y, 132, 14, 5); fs(c, lg(c, 0, y, 0, y + 14, [0, '#d2a56c', 1, '#7a4e26']), '#24130a', 3.5); }
+  c.fillStyle = PAL.gold; for (const x of [14, 130]) for (const y of [21, 129]) { ell(c, x, y, 3.4, 3.4); c.fill(); }
+}
+function artSaw(c) {
+  // 112×112：滾刀
+  c.translate(56, 56);
+  c.beginPath(); for (let i = 0; i < 28; i++) { const a = i / 28 * TAU, r = (i & 1) ? 38 : 52; c.lineTo(Math.cos(a + (i & 1 ? 0.1 : 0)) * r, Math.sin(a + (i & 1 ? 0.1 : 0)) * r); } c.closePath();
+  fs(c, rg(c, -10, -12, 4, 56, [0, '#f2f5fa', 0.6, '#9aa3b3', 1, '#4d5563']), '#14161c', 3.5);
+  ell(c, 0, 0, 26, 26); fs(c, null, 'rgba(20,22,28,.45)', 3);
+  ell(c, 0, 0, 14, 14); fs(c, rg(c, -3, -4, 1, 14, [0, '#ff8466', 1, '#b51d1d']), '#3a060b', 3.5);
+  c.fillStyle = 'rgba(255,255,255,.55)'; ell(c, -16, -20, 9, 5, -0.7); c.fill();
+}
+function artSluice(c) {
+  // 176×176：水閘。兩根木柱夾著閘板，上面是絞盤，底下蓄著水
+  shadow(c, 88, 152, 66, 18);
+  ell(c, 88, 136, 60, 20); fs(c, rg(c, 88, 132, 6, 60, [0, '#bfe8ff', 0.6, '#3d9bff', 1, '#1b4fd0']), '#0f2a78', 4);
+  for (const sd of [-1, 1]) { const x = 88 + sd * 50; rrect(c, x - 11, 34, 22, 112, 6); fs(c, lg(c, x - 11, 0, x + 11, 0, [0, '#4a2c12', 0.5, '#b98148', 1, '#3a220e']), '#24130a', 4); }
+  rrect(c, 46, 62, 84, 70, 6); fs(c, lg(c, 0, 62, 0, 132, [0, '#c8935a', 1, '#6f4520']), '#24130a', 4);
+  c.strokeStyle = 'rgba(40,20,6,.45)'; c.lineWidth = 3; for (const x of [67, 88, 109]) { c.beginPath(); c.moveTo(x, 66); c.lineTo(x, 128); c.stroke(); }
+  rrect(c, 44, 84, 88, 10, 3); fs(c, '#5b6372', '#14161c', 2.5); rrect(c, 44, 110, 88, 10, 3); fs(c, '#5b6372', '#14161c', 2.5);
+  rrect(c, 28, 26, 120, 16, 6); fs(c, lg(c, 0, 26, 0, 42, [0, '#d2a56c', 1, '#7a4e26']), '#24130a', 4);
+  ell(c, 88, 34, 17, 17); fs(c, rg(c, 84, 30, 2, 18, [0, '#ffe9a0', 1, '#cf8a14']), PAL.goldInk, 3.5);
+  c.strokeStyle = PAL.goldInk; c.lineWidth = 3; for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4; c.beginPath(); c.moveTo(88 - Math.cos(a) * 15, 34 - Math.sin(a) * 15); c.lineTo(88 + Math.cos(a) * 15, 34 + Math.sin(a) * 15); c.stroke(); }
+  c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 3; for (const k of [-1, 0, 1]) { c.beginPath(); c.moveTo(70 + k * 18, 138); c.quadraticCurveTo(79 + k * 18, 132, 88 + k * 18, 138); c.stroke(); }
+}
+function artRailPost(c, dk, lt, cap, capDk) {
+  // 32×96：橋欄的望柱
+  shadow(c, 16, 90, 11, 4);
+  rrect(c, 9, 20, 14, 70, 3); fs(c, lg(c, 9, 0, 23, 0, [0, dk, 0.45, lt, 1, dk]), PAL.ink, 2.5);
+  rrect(c, 6, 14, 20, 9, 3); fs(c, '#e9dfc8', PAL.ink, 2.5);
+  ell(c, 16, 9, 6.5, 7); fs(c, rg(c, 14, 6, 1, 8, [0, cap, 1, capDk]), PAL.ink, 2.2);
+}
 function artRock(c) { shadow(c, 32, 56, 22, 6); poly(c, [12, 40, 16, 18, 34, 8, 52, 20, 54, 42, 38, 54, 20, 52]); fs(c, lg(c, 0, 8, 0, 54, [0, '#b3b9c4', 1, '#5f6570']), PAL.ink, 3.5); c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(26, 20); c.lineTo(34, 34); c.lineTo(46, 32); c.stroke(); }
 function artShell(c) { ell(c, 24, 24, 15, 15); fs(c, rg(c, 19, 18, 2, 18, [0, '#7b8494', 1, '#1c2029']), '#0a0c10', 3); ell(c, 18, 17, 4, 3); fs(c, 'rgba(255,255,255,.55)'); }
 function artFireball(c) { ell(c, 48, 48, 44, 44); fs(c, rg(c, 48, 48, 4, 44, [0, 'rgba(255,255,220,1)', 0.3, 'rgba(255,190,60,.95)', 0.65, 'rgba(240,70,20,.7)', 1, 'rgba(180,20,10,0)'])); }
@@ -427,6 +519,8 @@ function buildAtlas() {
   art('beamG', 256, 72, 256, 72, (c) => artBeam(c, '#ffc02e', '#fff0a0', '#d48a10'));
   art('beamR', 256, 72, 256, 72, (c) => artBeam(c, '#e8392f', '#ff8a70', '#a01818'));
   art('barrel', 80, 96, 80, 96, artBarrel); art('rock', 64, 64, 64, 64, artRock); art('shell', 48, 48, 48, 48, artShell); art('fire', 96, 96, 96, 96, artFireball);
+  art('cask', 80, 96, 80, 96, artCask); art('bowI', 96, 96, 96, 96, artBowIcon); art('cage', 144, 144, 144, 144, artCage); art('saw', 112, 112, 112, 112, artSaw); art('rpost', 32, 96, 32, 96, (c) => artRailPost(c, '#8f1418', '#f0483a', '#fff2b0', '#cf8a14'));
+  art('rpostI', 32, 96, 32, 96, (c) => artRailPost(c, '#2b303b', '#98a2b3', '#f4fbff', '#8fa3bd')); art('rpostG', 32, 96, 32, 96, (c) => artRailPost(c, '#17100f', '#5a4644', '#ffd35a', '#e85a10'));
   newRow();
   for (let p = 0; p < 3; p++) { const q = art('gi' + p, 288, 232, 288, 232, (c) => { c.translate(32, 8); artGiant(c, p); }); q.ay = 214 / 232; }
   for (let f = 0; f < 2; f++) { const q = art('he' + f, 216, 256, 216, 256, (c) => { c.translate(8, 66); artHero(c, f); }); q.ax = 104 / 216; q.ay = 242 / 256; }
@@ -434,7 +528,8 @@ function buildAtlas() {
   art('canBase', 192, 150, 192, 150, artCannonBase); art('canBarrel', 96, 168, 96, 168, artCannonBarrel);
   newRow();
   for (let p = 0; p < 3; p++) { const q = art('bo' + p, 496, 400, 496, 400, (c) => { c.translate(56, 16); artBoss(c, p); }); q.ay = 372 / 400; }
-  art('ped', 176, 120, 176, 120, artPed); art('ballista', 176, 176, 176, 176, artBallista); art('mortar', 176, 176, 176, 176, artMortar);
+  art('dgH', 200, 224, 200, 224, artDragonHead).ay = 0.6; art('dgB', 128, 128, 128, 128, artDragonBody).ay = 0.5;
+  art('ped', 176, 120, 176, 120, artPed); art('ballista', 176, 176, 176, 176, artBallista); art('mortar', 176, 176, 176, 176, artMortar); art('sluice', 176, 176, 176, 176, artSluice);
   newRow();
   artGlyphs();
   return cv;

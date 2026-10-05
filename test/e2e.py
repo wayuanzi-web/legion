@@ -1,10 +1,12 @@
 """端對端：用真的點擊與拖曳走一遍 主畫面 → 第一關 → 結算 → 下一關 → 暫停 → 回主畫面。"""
 import asyncio, sys, pathlib, json
 from playwright.async_api import async_playwright
+import os
+GPU_ARGS = [] if os.environ.get('WJ_GPU') == '0' else ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']      # WJ_GPU=0：有些機器加了這兩個參數截圖反而很慢
 root = pathlib.Path(__file__).resolve().parent.parent
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'])
+        b = await p.chromium.launch(args=GPU_ARGS + ['--autoplay-policy=no-user-gesture-required'])
         ctx = await b.new_context(viewport={'width': 300, 'height': 650}, device_scale_factor=1, has_touch=True)
         pg = await ctx.new_page()
         msgs = []

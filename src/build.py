@@ -51,7 +51,7 @@ print('built', len(frag) // 1024, 'KB;', len(js_files), 'js parts;', len(cjk), '
 if len(sys.argv) > 1:
     url = sys.argv[1].rstrip('/') + '/'
     site = root.parent
-    desc = '一砲轟出千軍萬馬：拖曳兵砲讓士兵穿過倍增門暴增，衝垮赤潮、攻破敵城。五個關卡，手機點開就能玩。'
+    desc = '一砲轟出千軍萬馬：讓士兵穿過倍增門暴增，衝垮赤潮、攻破敵城；再帶著大軍過橋遠征，放箭、闖關、屠龍。十個關卡，手機點開就能玩。'
     meta = ('<meta name="theme-color" content="#120f1c">'
             f'<meta name="description" content="{desc}">'
             '<link rel="manifest" href="manifest.webmanifest">'

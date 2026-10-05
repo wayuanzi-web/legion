@@ -2,6 +2,8 @@
 python3 test/scene.py <name> [--2d]   （情境寫在 SCENES 裡）"""
 import asyncio, sys, pathlib, json
 from playwright.async_api import async_playwright
+import os
+GPU_ARGS = [] if os.environ.get('WJ_GPU') == '0' else ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']      # WJ_GPU=0：有些機器加了這兩個參數截圖反而很慢
 root = pathlib.Path(__file__).resolve().parent.parent
 W, H = 390, 844
 FULL = None
@@ -25,12 +27,32 @@ SCENES = {
   'l5full': (5, 'good', [('until', '!w.S.fort.alive'), ('adv', 1.0), ('shot', 'f_fortdie', FULL), ('adv', 2.2), ('shot', 'f_bossrise', FULL), ('adv', 8), ('shot', 'f_boss8', FULL), ('until', 'w.S.boss && w.S.boss.hp < w.S.boss.maxHp * 0.48'), ('adv', 0.6), ('shot', 'f_rage', FULL), ('until', '!w.S.boss'), ('adv', 0.3), ('shot', 'f_bossdie', FULL), ('rt', 6500), ('shot', 'f_result', FULL)]),
   'gold': (5, 'good', [('t', 31.5), ('shot', 'gold0', FULL), ('t', 33.5), ('shot', 'gold1', FULL), ('t', 35), ('shot', 'gold2', FULL)]),
   'surge': (3, 'good', [('t', 27), ('shot', 'surge0', FULL), ('t', 30), ('shot', 'surge1', FULL)]),
+  'm6': (6, 'good', [('t', 1.5), ('shot', 'm6_01', FULL), ('t', 5), ('shot', 'm6_05', FULL), ('t', 9.5), ('shot', 'm6_09', FULL), ('t', 14), ('shot', 'm6_14', FULL), ('t', 19), ('shot', 'm6_19', FULL), ('t', 24), ('shot', 'm6_24', FULL), ('t', 31), ('shot', 'm6_31', FULL)]),
+  'l7': (7, 'good', [('t', 3), ('shot', 'l7_03', FULL), ('until', '!w.S.rgates[0].alive'), ('adv', 0.2), ('shot', 'l7_break', FULL), ('adv', 0.6), ('shot', 'l7_break2', FULL), ('until', '!w.S.rgates[1].alive'), ('adv', 0.3), ('shot', 'l7_break3', FULL)]),
+  'l9': (9, 'good', [('t', 3), ('shot', 'l9_03', FULL), ('t', 20), ('shot', 'l9_20', FULL), ('t', 26), ('until', 'w.S.flood && w.S.flood.t > 0.5 && w.S.flood.t < 0.9'), ('shot', 'l9_flood1', FULL), ('adv', 0.8), ('shot', 'l9_flood2', FULL), ('adv', 1.0), ('shot', 'l9_flood3', FULL), ('adv', 1.2), ('shot', 'l9_flood4', FULL)]),
+  'm8': (8, 'good', [('t', 5), ('shot', 'm8_05', FULL), ('t', 9.5), ('shot', 'm8_09', FULL), ('t', 17), ('shot', 'm8_17', FULL), ('t', 22), ('shot', 'm8_22', FULL), ('t', 30), ('shot', 'm8_30', FULL), ('t', 38), ('shot', 'm8_38', FULL)]),
+  'm10': (10, 'good', [('t', 4), ('shot', 'm10_04', FULL), ('until', 'w.S.strafes.length'), ('adv', 0.9), ('shot', 'm10_warn', FULL), ('adv', 0.75), ('shot', 'm10_fire1', FULL), ('adv', 0.3), ('shot', 'm10_fire2', FULL), ('adv', 0.5), ('shot', 'm10_fire3', FULL)]),
+  'm10b': (10, 'good', [('t', 2), ('js', 'S.ti = S.track.length - 1; S.sq.dist = S.track[S.ti].d - 150; S.R.n = 0; S.bigs.length = 0; S.gates.length = 0; S.barrels.length = 0; S.holes.length = 0; S.saws.length = 0; S.sq.wpn = 2; for (let i = 0; i < 700; i++) w.addBlue(0, 4, 0, 0, 0, 0);'),
+    ('adv', 6), ('shot', 'm10_come', FULL), ('until', 'w.S.boss && w.S.boss.fixed'), ('adv', 0.6), ('shot', 'm10_boss0', FULL), ('adv', 2.2), ('shot', 'm10_boss1', FULL), ('adv', 0.9), ('shot', 'm10_boss2', FULL), ('adv', 5), ('shot', 'm10_boss3', FULL),
+    ('js', 'S.boss && (S.boss.hp = S.boss.maxHp * 0.4)'), ('adv', 3), ('shot', 'm10_rage', FULL), ('js', 'S.boss && (S.boss.hp = 20)'), ('until', '!w.S.boss'), ('adv', 0.3), ('shot', 'm10_die1', FULL), ('adv', 1.2), ('shot', 'm10_die2', FULL), ('rt', 6500), ('shot', 'm10_result', FULL)]),
+  'm10c': (10, 'good', [('until', 'w.S.boss && w.S.boss.fixed'), ('adv', 0.5), ('shot', 'c10_arrive', FULL),
+    ('until', 'w.S.strafes.length && w.S.strafes[0].t > 1.0'), ('shot', 'c10_warn', FULL), ('until', 'w.S.strafes.length && w.S.strafes[0].lit'), ('adv', 0.22), ('shot', 'c10_fire', FULL),
+    ('js', 'S.hero.t = S.hero.cd'), ('adv', 1.5), ('shot', 'c10_hero1', FULL), ('adv', 0.9), ('shot', 'c10_hero2', FULL), ('adv', 1.2), ('shot', 'c10_hero3', FULL),
+    ('until', 'w.S.boss && w.S.boss.rage'), ('until', 'w.S.strafes.length && w.S.strafes[0].w > 6 && w.S.strafes[0].t > 1.1'), ('shot', 'c10_rwarn', FULL),
+    ('until', 'w.S.strafes.length && w.S.strafes[0].lit'), ('adv', 0.22), ('shot', 'c10_rfire', FULL), ('adv', 1.4), ('shot', 'c10_after', FULL),
+    ('until', '!w.S.boss'), ('adv', 0.3), ('shot', 'c10_die1', FULL), ('adv', 1.3), ('shot', 'c10_die2', FULL)]),
+  'tnt6': (6, 'good', [('until', 'w.S.sq.dist > 392'), ('shot', 't6_a', FULL), ('until', 'w.S.barrels.some((o) => o.fuse >= 0)'), ('adv', 0.05), ('shot', 't6_b', FULL), ('adv', 0.25), ('shot', 't6_c', FULL), ('adv', 0.5), ('shot', 't6_d', FULL)]),
+  'tnt8': (8, 'good', [('until', 'w.S.sq.dist > 440'), ('shot', 't8_a', FULL), ('until', 'w.S.barrels.some((o) => o.fuse >= 0)'), ('adv', 0.3), ('shot', 't8_b', FULL), ('adv', 0.6), ('shot', 't8_c', FULL), ('until', 'w.S.sq.dist > 566'), ('shot', 't8_d', FULL), ('until', 'w.S.sq.siege'), ('shot', 't8_e', FULL)]),
+  'hz8': (8, 'afk', [('t', 1), ('js', 'for (let i = 0; i < 300; i++) w.addBlue(0, 4, 0, 0, 0, 0)'), ('until', 'w.S.holes.length && w.S.holes[0].z < 12'), ('shot', 'hz8_a', FULL), ('adv', 0.6), ('shot', 'hz8_b', FULL), ('adv', 0.6), ('shot', 'hz8_c', FULL), ('adv', 1.2), ('shot', 'hz8_d', FULL)]),
+  'hz10': (10, 'afk', [('t', 1), ('js', 'for (let i = 0; i < 400; i++) w.addBlue(0, 4, 0, 0, 0, 0)'), ('until', 'w.S.strafes.length && w.S.strafes[0].lit && w.S.strafes[0].zf < 40'), ('shot', 'hz10_a', FULL), ('adv', 0.25), ('shot', 'hz10_b', FULL), ('adv', 0.3), ('shot', 'hz10_c', FULL), ('adv', 1.2), ('shot', 'hz10_d', FULL)]),
+  'saw8': (8, 'afk', [('t', 1), ('js', 'S.cannonX = 3'), ('t', 16.5), ('js', 'for (let i = 0; i < 300; i++) w.addBlue(3, 4, 0, 0, 0, 0); S.cannonX = -1'), ('until', 'w.S.saws.length && w.S.saws[0].z < 16'), ('shot', 'saw8_a', FULL), ('until', 'w.S.saws[0].z < 8'), ('shot', 'saw8_b', FULL), ('until', 'w.S.saws[0].z < 3'), ('shot', 'saw8_c', FULL), ('adv', 0.8), ('shot', 'saw8_d', FULL)]),
+  'm6b': (6, 'good', [('t', 37), ('shot', 'm6_37', FULL), ('t', 44), ('shot', 'm6_44', FULL), ('t', 50), ('shot', 'm6_50', FULL), ('t', 57), ('shot', 'm6_57', FULL), ('t', 62), ('shot', 'm6_62', FULL), ('until', 'w.S.sq.siege'), ('adv', 0.5), ('shot', 'm6_siege0', FULL), ('adv', 2), ('shot', 'm6_siege1', FULL), ('adv', 2.5), ('shot', 'm6_siege2', FULL), ('until', '!w.S.fort.alive'), ('adv', 0.4), ('shot', 'm6_win', FULL), ('rt', 6000), ('shot', 'm6_result', FULL)]),
 }
 async def main():
     name = sys.argv[1]
     level, bot, steps = SCENES[name]
     async with async_playwright() as p:
-        b = await p.chromium.launch(args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
+        b = await p.chromium.launch(args=GPU_ARGS)
         ctx = await b.new_context(viewport={'width': W, 'height': H}, device_scale_factor=2, is_mobile=True, has_touch=True)
         pg = await ctx.new_page()
         msgs = []
@@ -60,14 +82,14 @@ async def main():
             await pg.click('#btnPause'); await pg.wait_for_timeout(400)
             await pg.screenshot(path=str(root / 'shots/m_pause.png'))
             print('console:', msgs[:10]); await b.close(); return
-        await pg.evaluate(f'''() => {{ const w = window.__wj; w.G.freeze = true; w.startLevel({level - 1}); w._bot = w.makeBot('{bot}'); }}''')
+        await pg.evaluate(f'''() => {{ const w = window.__wj; w.G.freeze = true; w.startLevel({level - 1}); w._bot = w.botFor('{bot}'); }}''')
         for st in steps:
             if st[0] == 't':
                 await pg.evaluate('(t) => { const w = window.__wj; let guard = 0; while (w.S.time < t && w.S.state === "play" && guard++ < 4000) w.advance(0.1, w._bot); }', st[1])
             elif st[0] == 'until':
                 await pg.evaluate('(c) => { const w = window.__wj; let guard = 0; const f = new Function("w", "return " + c); while (!f(w) && w.S.state === "play" && guard++ < 6000) w.advance(0.05, w._bot); }', st[1])
             elif st[0] == 'adv':
-                await pg.evaluate('(s) => { const w = window.__wj; w.advance(s, w._bot); }', st[1])
+                if st[1] > 0: await pg.evaluate('(s) => { const w = window.__wj; w.advance(s, w._bot); }', st[1])
             elif st[0] == 'rt':      # 放開凍結，讓即時迴圈跑一段（測結算畫面）
                 await pg.evaluate('window.__wj.G.freeze = false'); await pg.wait_for_timeout(st[1]); await pg.evaluate('window.__wj.G.freeze = true')
             elif st[0] == 'js':
@@ -76,7 +98,7 @@ async def main():
                 kw = {'clip': st[2]} if st[2] else {}
                 await pg.wait_for_timeout(200)
                 await pg.screenshot(path=str(root / f'shots/s_{st[1]}.png'), **kw)
-                info = await pg.evaluate('''() => { const w = window.__wj, S = w.S; return {t:+S.time.toFixed(1), state:S.state, mode:w.G.mode, B:S.B.n, R:S.R.n, kills:S.kills, front:S.front, fort:S.fort.hp, wall:S.wallHp, bigs:S.bigs.map(b=>b.kind+':'+Math.round(b.hp)+':'+b.st), quads:w.GLR.quads}; }''')
+                info = await pg.evaluate('''() => { const w = window.__wj, S = w.S; return {t:+S.time.toFixed(1), state:S.state, mode:w.G.mode, B:S.B.n, R:S.R.n, kills:S.kills, front:S.front, fort:S.fort.hp, wall:S.wallHp, dist: S.sq ? Math.round(S.sq.dist) : null, bigs:S.bigs.map(b=>b.kind+':'+Math.round(b.hp)+':'+b.st), quads:w.GLR.quads, atlasY: w.AT.py + w.AT.rowH}; }''')
                 print(st[1], json.dumps(info))
         print('console:', msgs[:10])
         await b.close()

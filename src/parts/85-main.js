@@ -28,17 +28,21 @@ function rebuildTerrain() {
 function demoStart(idx) {
   G.demo = true; G.demoIdx = idx; G.demoWait = 0;
   simInit(idx, { rate: 3, armor: 3, hero: 3, ult: 3, wall: 5 }, (Math.random() * 1e9) | 0, 1); fxReset(); rebuildTerrain();
-  G.bot = makeBot('casual'); S.on = fxOn;
+  G.bot = botFor('casual'); S.on = fxOn;
 }
 function startLevel(idx) {
   auInit();
   G.demo = false; G.mode = 'play'; G.endT = 0; G.acc = 0; G.moved = 0; G.mileIdx = 0; G.lastKills = -1; G.lastWall = -1; G.bossBar = false;
-  $('tug').classList.remove('boss'); $('tugRl').textContent = '赤潮';
+  $('tug').classList.remove('boss');
   const run = G.run = (G.run || 0) + 1;
   simInit(idx, SV.up, (Math.random() * 1e9) | 0, SV.diff); fxReset(); rebuildTerrain(); S.on = fxOn; G.ultHint = false;
   $('home').hidden = true; $('result').hidden = true; $('opt').hidden = true; $('shop').hidden = true; $('hud').hidden = false;
   $('hudNo').textContent = '第' + NUM_ZH[idx] + '關'; $('hudName').textContent = LEVELS[idx].name;
-  $('hint').hidden = !(idx === 0 && !SV.seen);
+  const march = S.mode === 1;
+  $('hint').textContent = march ? '← 左右拖曳，帶隊前進 →' : '← 左右拖曳，移動兵砲 →';
+  $('hint').hidden = march ? SV.seenM : !(idx === 0 && !SV.seen); $('hint').classList.toggle('up', march);
+  $('wallLbl').textContent = march ? '路程' : '城牆'; $('wallBar').classList.remove('warn'); $('wallBar').classList.toggle('road', march);
+  $('tugRl').textContent = march ? (LEVELS[idx].boss === 'dragon' ? '赤龍' : '敵堡') : '赤潮';
   $('banner').className = ''; $('say').className = 'chamfer'; $('mile').className = '';
   setTimeout(() => { if (G.mode === 'play' && G.run === run) { const el = $('banner'); el.className = 'blue'; el.innerHTML = ''; const s = document.createElement('small'); s.textContent = '第' + NUM_ZH[idx] + '關'; el.appendChild(s); el.appendChild(document.createTextNode(LEVELS[idx].name)); replay(el, 'show'); } }, 60);
   setTimeout(() => { if (G.mode === 'play' && G.run === run && S.time < 6) say(LEVELS[idx].tip); }, 1900);
@@ -54,13 +58,15 @@ function pauseGame() { if (G.mode !== 'play' || S.state !== 'play') return; G.mo
 function resumeGame() { if (G.mode !== 'pause') return; G.mode = 'play'; $('opt').hidden = true; G.last = performance.now(); }
 function finishLevel() {
   const won = S.state === 'won', idx = S.idx;
-  const ratio = S.wallHp / S.wallMax, stars = won ? (ratio >= 0.8 ? 3 : ratio >= 0.4 ? 2 : 1) : 0;
+  const ratio = S.wallHp / S.wallMax, lv = LEVELS[idx];
+  // 破陣關看城牆剩多少；行軍關看過關時還剩多少兵
+  const stars = !won ? 0 : S.mode ? (S.survive >= lv.s3 ? 3 : S.survive >= lv.s2 ? 2 : 1) : (ratio >= 0.8 ? 3 : ratio >= 0.4 ? 2 : 1);
   let coins = Math.floor(S.kills / (won ? 30 : 50)) + S.coinsBig;
   if (SV.diff === 2) coins = Math.round(coins * 1.25);
-  if (won) { coins += 60 + 30 * idx + Math.max(0, stars - SV.stars[idx]) * 25; SV.stars[idx] = Math.max(SV.stars[idx], stars); SV.open = Math.max(SV.open, Math.min(5, idx + 2)); }
-  SV.coins += coins; SV.kills += S.kills; SV.seen = true; save();
+  if (won) { coins += 60 + 30 * idx + Math.max(0, stars - SV.stars[idx]) * 25; SV.stars[idx] = Math.max(SV.stars[idx], stars); SV.open = Math.max(SV.open, Math.min(LEVELS.length, idx + 2)); }
+  SV.coins += coins; SV.kills += S.kills; SV.seen = true; if (S.mode) SV.seenM = true; save();
   G.mode = 'result'; musStop(); sfx(won ? 'win' : 'lose');
-  showResult(won, { idx, stars, kills: S.kills, army: S.maxArmy, lost: S.lost, time: S.time, coins });
+  showResult(won, { idx, stars, kills: S.kills, army: S.maxArmy, lost: S.lost, time: S.time, coins, march: S.mode === 1, left: S.survive });
 }
 
 function setTrack(el, f) { el.style.transform = 'scaleX(' + clamp(f, 0, 1).toFixed(3) + ')'; }
@@ -72,22 +78,33 @@ function hudUpdate(force) {
     G.lastKills = S.kills;
     while (G.mileIdx < MILES.length && S.kills >= MILES[G.mileIdx][0]) { if (!force) mile(MILES[G.mileIdx][1]); G.mileIdx++; }
   }
-  if (S.wallHp !== G.lastWall) {
+  const march = S.mode === 1;
+  if (march) {
+    // 行軍關沒有城牆，這一格改顯示走了多遠
+    const pct = Math.round(clamp(S.sq.dist / S.sq.len, 0, 1) * 100);
+    if (pct !== G.lastWall) { G.lastWall = pct; $('wallNum').textContent = pct + '%'; setTrack($('wallBar'), pct / 100); }
+  } else if (S.wallHp !== G.lastWall) {
     G.lastWall = S.wallHp; $('wallNum').textContent = Math.max(0, Math.ceil(S.wallHp));
     setTrack($('wallBar'), S.wallHp / S.wallMax); $('wallBar').classList.toggle('warn', S.wallHp < S.wallMax * 0.4);
   }
   if (force || G.hudN % 4 === 0) {
     $('tugB').textContent = fmt(S.B.n);
     const boss = S.boss;
-    if (!!boss !== G.bossBar) { G.bossBar = !!boss; $('tug').classList.toggle('boss', G.bossBar); $('tugRl').textContent = boss ? '魔王' : '赤潮'; }
+    if (!!boss !== G.bossBar) { G.bossBar = !!boss; $('tug').classList.toggle('boss', G.bossBar); $('tugRl').textContent = boss ? (boss.kind === 'dragon' ? '赤龍' : '魔王') : march ? (S.lv.boss === 'dragon' ? '赤龍' : '敵堡') : '赤潮'; }
     if (boss) { $('tugR').textContent = fmt(Math.ceil(boss.hp)); setTrack($('tugBar'), boss.hp / boss.maxHp); }
+    else if (march) {
+      // 我軍人數對上橋頭堡的兵力：藍條過半就是夠打
+      const f = S.fort.alive ? S.fort.hp : S.state === 'won' ? 0 : (S.sq.fortN || S.sq.bossN), n = S.B.n;
+      $('tugR').textContent = fmt(Math.ceil(f)); setTrack($('tugBar'), S.state === 'won' ? 1 : clamp(n / Math.max(1, n + f), 0.02, 1));
+    }
     else { $('tugR').textContent = fmt(S.R.n); setTrack($('tugBar'), S.state === 'won' ? 1 : clamp(S.front / L, 0.02, 1)); }
     const h = S.hero, hm = $('heroMeter');
-    hm.hidden = !h.on; if (h.on) { const f = h.ready > 0 ? 1 : h.t / h.cd; setTrack($('heroBar'), f); $('heroNum').textContent = h.ready > 0 ? '出陣' : Math.max(0, Math.ceil(h.cd - h.t)) + '秒'; hm.classList.toggle('ready', h.ready > 0); }
+    hm.hidden = !h.on; if (h.on) { const f = h.ready > 0 ? 1 : h.t / h.cd; setTrack($('heroBar'), f); $('heroNum').textContent = h.ready > 0 ? '出陣' : h.t >= h.cd ? '待命' : Math.max(0, Math.ceil(h.cd - h.t)) + '秒'; hm.classList.toggle('ready', h.ready > 0); }
     const u = S.ult, p = clamp(u.charge / u.need, 0, 1), btn = $('btnUlt');
-    btn.style.setProperty('--p', p.toFixed(3)); btn.classList.toggle('ready', p >= 1 && !u.active);
-    if (p >= 1 && !u.active && !SV.ultSeen && !G.ultHint && S.state === 'play') { G.ultHint = true; say('箭雨集滿了！按右下角的金色按鈕', 0); }
-    $('ultNum').textContent = p >= 1 ? '發射' : Math.floor(p * 100) + '%';
+    const noFoe = S.mode === 1 && S.front > 96;      // 行軍途中前面沒有敵人，箭雨先留著
+    btn.style.setProperty('--p', p.toFixed(3)); btn.classList.toggle('ready', p >= 1 && !u.active && !noFoe);
+    if (p >= 1 && !u.active && !noFoe && !SV.ultSeen && !G.ultHint && S.state === 'play') { G.ultHint = true; say('箭雨集滿了！按右下角的金色按鈕', 0); }
+    $('ultNum').textContent = p >= 1 ? (noFoe ? '集滿' : '發射') : Math.floor(p * 100) + '%';
   }
 }
 
@@ -104,7 +121,7 @@ function frame(now) {
     let ts = FX.slow; if (FX.stop > 0) { FX.stop -= rdt; ts = 0; }
     if (G.mode === 'play' && S.state === 'play') {
       const k = G.keys; let dx = 0; if (k.ArrowLeft || k.KeyA) dx -= 1; if (k.ArrowRight || k.KeyD) dx += 1;
-      if (dx) { S.cannonX = clamp(S.cannonX + dx * 19 * rdt, -CAN_LIM, CAN_LIM); G.moved += 3; if (G.moved > 70 && !$('hint').hidden) $('hint').hidden = true; }
+      if (dx) { S.cannonX = clamp(S.cannonX + dx * 19 * rdt, -S.xLim, S.xLim); G.moved += 3; if (G.moved > 70 && !$('hint').hidden) $('hint').hidden = true; }
     }
     G.acc += rdt * ts; let n = 0;
     while (G.acc >= STEP && n < 4) { if (G.demo && S.state === 'play') G.bot(STEP); simStep(STEP); G.acc -= STEP; n++; }
@@ -112,17 +129,18 @@ function frame(now) {
     fxStep(rdt * ts, rdt);
     if (G.mode === 'play') {
       hudUpdate(false);
+      if (S.time > 14 && !$('hint').hidden) $('hint').hidden = true;
       if (S.state !== 'play') { G.endT += rdt; if (G.endT > (S.state === 'won' ? 3.2 : 2.4)) finishLevel(); }
     } else if (G.demo && S.state !== 'play') { G.demoWait += rdt; if (G.demoWait > 3.5) demoStart(G.demoIdx); }
   }
   renderFrame();
-  const heat = S.state === 'play' && G.mode === 'play' ? clamp(1 - S.front / 60, 0, 1) * 0.6 + (S.boss ? 0.5 : 0) + Math.min(0.4, FX.killRate / 900) : 0;
+  const heat = S.state === 'play' && G.mode === 'play' ? (S.mode ? (S.sq.siege ? 0.5 : 0.15) : clamp(1 - S.front / 60, 0, 1) * 0.6) + (S.boss ? 0.5 : 0) + Math.min(0.4, FX.killRate / 900) : 0;
   auStep(rdt, FX.killRate, run && !G.demo); musStep(Math.min(1, heat));
 }
 
 function bindInput() {
   const stage = $('stage');
-  const absX = (clientX) => { const r = stage.getBoundingClientRect(); return clamp(worldXAt((clientX - r.left) * V.W / r.width, CANZ), -CAN_LIM, CAN_LIM); };
+  const absX = (clientX) => { const r = stage.getBoundingClientRect(); return clamp(worldXAt((clientX - r.left) * V.W / r.width, S.ctlZ), -S.xLim, S.xLim); };
   stage.addEventListener('pointerdown', (e) => {
     auInit(); if (!G.started) { G.started = true; if (G.mode === 'home') musStart(0, true); }
     if (G.mode !== 'play' || e.target.closest('button')) return;
@@ -138,7 +156,7 @@ function bindInput() {
     if (e.pointerType === 'mouse') { if (e.target.closest && e.target.closest('button')) return; S.cannonX = absX(e.clientX); G.moved += 4; }
     else if (G.drag && G.drag.id === e.pointerId) {
       const dx = e.clientX - G.drag.x; G.drag.x = e.clientX; G.drag.at = performance.now(); G.moved += Math.abs(dx);
-      S.cannonX = clamp(S.cannonX + dx * (V.W / G.stageW) * (1 + CANZ * V.g) / V.s0 * 1.25, -CAN_LIM, CAN_LIM);
+      S.cannonX = clamp(S.cannonX + dx * (V.W / G.stageW) * (1 + S.ctlZ * V.g) / V.s0 * 1.25, -S.xLim, S.xLim);
     }
     if (G.moved > 70 && !$('hint').hidden) $('hint').hidden = true;
   });
@@ -167,18 +185,18 @@ function bindInput() {
   click('btnResume', () => { sfx('click'); resumeGame(); });
   click('btnRetry', () => { sfx('click'); startLevel(S.idx); });
   click('btnQuit', () => { sfx('click'); goHome(); });
-  click('btnNext', () => { sfx('click'); UI.sel = Math.min(4, S.idx + 1); startLevel(UI.sel); });
+  click('btnNext', () => { sfx('click'); UI.sel = Math.min(LEVELS.length - 1, S.idx + 1); startLevel(UI.sel); });
   click('btnAgain', () => { sfx('click'); startLevel(S.idx); });
   click('btnUp', () => { sfx('click'); shopRender(); $('shop').hidden = false; });
-  click('btnHome', () => { sfx('click'); UI.sel = Math.min(S.state === 'won' ? S.idx + 1 : S.idx, SV.open - 1, 4); goHome(); });
+  click('btnHome', () => { sfx('click'); UI.sel = Math.min(S.state === 'won' ? S.idx + 1 : S.idx, SV.open - 1, LEVELS.length - 1); goHome(); });
   click('tSfx', () => { SV.sfx = !SV.sfx; toggleSync(); save(); sfx('click'); });
   click('tMus', () => { SV.mus = !SV.mus; toggleSync(); save(); sfx('click'); });
   click('tVib', () => { SV.vib = !SV.vib; toggleSync(); save(); vibrate(30); sfx('click'); });
   document.querySelectorAll('#diffSeg button').forEach((b) => b.addEventListener('click', () => { auInit(); SV.diff = +b.dataset.d; toggleSync(); save(); sfx('click'); }));
-  click('btnUnlock', () => { SV.open = 5; save(); sfx('buy'); homeRender(); $('opt').hidden = true; });
+  click('btnUnlock', () => { SV.open = LEVELS.length; save(); sfx('buy'); homeRender(); $('opt').hidden = true; });
   click('btnWipe', () => {
     if (!UI.wipeArm) { UI.wipeArm = 1; $('btnWipe').textContent = '再按一次，確定清除'; sfx('deny'); return; }
-    SV.coins = 0; SV.open = 1; SV.kills = 0; SV.seen = false; SV.stars = [0, 0, 0, 0, 0]; for (const k in SV.up) SV.up[k] = 0;
+    SV.coins = 0; SV.open = 1; SV.kills = 0; SV.seen = false; SV.seenM = false; SV.stars = LEVELS.map(() => 0); for (const k in SV.up) SV.up[k] = 0;
     save(); UI.sel = 0; homeRender(); demoStart(0); $('opt').hidden = true; sfx('click');
   });
   document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => { sfx('click'); b.closest('.modal').hidden = true; if (G.mode === 'home') homeRender(); }));
@@ -186,7 +204,7 @@ function bindInput() {
 
 function boot() {
   loadSave(); toggleSync();
-  UI.sel = clamp(SV.open - 1, 0, 4);
+  UI.sel = clamp(SV.open - 1, 0, LEVELS.length - 1);
   const cv = $('cv');
   const force2d = /(^|[#&])2d\b/.test(location.hash);
   glInit(cv, force2d);
@@ -202,7 +220,7 @@ function boot() {
     document.fonts.load('84px "Lilita One"').then((f) => { if (f && f.length) { buildAtlas(); glSetAtlas(AT.cv); renderInit(); } }).catch(() => { });
   }
 }
-window.__wj = { S, FX, G, V, SV, AU, sfx, musStart, musStep, auStep, startLevel, goHome, simUlt, makeBot, GLR, layout, simStep, fxStep, renderFrame,
+window.__wj = { S, FX, G, V, SV, AU, AT, LEVELS, addBlue, simInit, sfx, musStart, musStep, auStep, startLevel, goHome, simUlt, makeBot, botFor, GLR, layout, simStep, fxStep, renderFrame,
   // 測試用：凍結即時迴圈後，手動把戰局往前推 sec 秒
   advance(sec, bot) { const n = Math.round(sec / STEP); for (let i = 0; i < n; i++) { if (bot && S.state === 'play') bot(STEP); simStep(STEP); fxStep(STEP, STEP); if (G.mode === 'play' && S.state !== 'play') G.endT += STEP; } if (G.mode === 'play') hudUpdate(true); }
 };
