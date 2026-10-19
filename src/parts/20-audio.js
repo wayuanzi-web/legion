@@ -82,6 +82,10 @@ function sfx(name, arg) {
       case 'lose0': tone(220, 0.9, 'sawtooth', 0.15, 70, 0, null, 0.02); noise(0.8, 0.2, 'lowpass', 800, 80, 1); break;
       case 'lose': [67, 63, 60, 55].forEach((n, i) => tone(NOTE(n), 0.42, 'triangle', 0.14, 0, i * 0.24)); break;
       case 'flood': noise(2.6, 0.5, 'lowpass', 500, 1800, 0.7, 0, null); noise(2.4, 0.22, 'bandpass', 2400, 900, 0.9, 0.2); tone(60, 2.2, 'sine', 0.4, 38, 0, null, 0.3); break;
+      case 'crack': tone(1800, 0.05, 'square', 0.04, 600); noise(0.25, 0.12, 'highpass', 2600, 900, 1.5); break;
+      case 'splash': noise(0.7, 0.3, 'lowpass', 1800, 300, 0.9); tone(160, 0.3, 'sine', 0.16, 60); break;
+      case 'aval': noise(1.6, 0.42, 'lowpass', 600, 120, 0.7); noise(1.2, 0.16, 'bandpass', 1400, 500, 1.2, 0.1); break;
+      case 'wind': noise(2.4, 0.2, 'bandpass', 380, 1300, 1.6, 0, null); noise(1.8, 0.1, 'bandpass', 900, 500, 2.2, 0.3, null); break;
       case 'warn2': for (let i = 0; i < 3; i++) tone(i & 1 ? 520 : 700, 0.16, 'sawtooth', 0.12, 0, i * 0.17, null, 0.02); break;
       case 'breath': noise(1.1, 0.42, 'bandpass', 700, 240, 0.8); tone(86, 0.9, 'sawtooth', 0.2, 50, 0, null, 0.05); noise(0.8, 0.14, 'highpass', 2600, 0, 1, 0.1); break;
       case 'arw': if (gap('arw', 95)) return; noise(0.035, 0.035, 'highpass', 4200 + Math.random() * 1800, 0, 1.2); break;

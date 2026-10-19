@@ -48,7 +48,7 @@ function ringFx(x, z, r, col, life, add) {
   pt(SP_RING, x, z, 0.05, 0, 0, 0, life, r * 0.42, col, PF_FLAT | PF_GROW | (add ? PF_ADD : 0), 0);
 }
 function explode(x, z, r, kind) {
-  // kind: 0 我方砲彈、1 落石、2 魔王火球、3 火藥桶
+  // kind: 0 我方砲彈、1 落石、2 魔王火球、3 火藥桶、4 敵軍砲彈
   const big = r / 3.4, fire = kind !== 1;
   const quiet = FX.low ? 0.5 : 1;
   if (fire) pt(SP_SOFT, x, z, 1, 0, 0, 0, 0.32, r * 1.5, kind === 2 ? C_PURP : C_FIRE, PF_ADD | PF_GROW, 0);
@@ -127,6 +127,12 @@ function fxOn(type, a, b, c, d, e, f, g, h, i) {
       sfx('fortdie'); vibrate(120); break;
     case 'big': if (a.kind === 'giant') { sfx('giant'); say('巨魔來襲'); } break;
     case 'bigdie': {
+      if (a.kind === 'colossus') {
+        for (let k = 0; k < 14; k++) explode(a.x + rnf(-7, 7), a.z + rnf(-2, 4), 4.6, k & 1 ? 3 : 2);
+        for (let k = 0; k < 30; k++) { const a2 = R01() * TAU; pt(SP_ROCK, a.x + rnf(-6, 6), a.z, rnf(4, 14), Math.cos(a2) * rnf(4, 14), -rnf(4, 16), rnf(8, 20), 1.6, rnf(1.2, 2.8), rgba(220, 170, 90, 255), PF_BOUNCE, 26, R01() * 6, rnf(-8, 8)); }
+        burst(a.x, a.z, 6, 90, C_GOLD, 20, 0.6, 1.3, PF_ADD);
+        addShake(26); FX.slowT = 2; FX.slow = 0.25; addFlash(0xffffff, 0.95); vibrate(250); sfx('fortdie'); break;
+      }
       if (a.kind === 'dragon') {
         for (let k = 0; k < 16; k++) explode(a.x + Math.sin(k * 0.55) * (0.6 + k * 0.26) + rnf(-1, 1), a.z + k * 1.5, 4.2, 2);
         burst(a.x, a.z, 4, 80, C_GOLD, 18, 0.6, 1.2, PF_ADD);
@@ -164,7 +170,7 @@ function fxOn(type, a, b, c, d, e, f, g, h, i) {
       burst(a, b, 1.5, 44, C_GOLD, 16, 0.55, 1, PF_ADD); addShake(16); addFlash(0xfff0b0, 0.2); sfx('land');
       if (d > 20) floatText(String(d), a, b, 4, 2.6, C_GOLD, 1.1); break;
     case 'boss': banner('赤潮魔王', 'boss'); FX.dark = 1; addShake(20); sfx('warning'); speak('警告，魔王來襲'); vibrate(200); break;
-    case 'rage': banner(a.kind === 'dragon' ? '赤龍暴怒' : '魔王暴怒', 'red'); addShake(16); addFlash(0xff2010, 0.3); sfx('roar'); break;
+    case 'rage': banner(a.kind === 'dragon' ? '赤龍暴怒' : a.kind === 'colossus' ? '巨像暴走' : '魔王暴怒', 'red'); addShake(16); addFlash(0xff2010, 0.3); sfx('roar'); break;
     case 'roar': ringFx(a.x, a.z, 9, C_PURP, 0.6, true); addShake(9); sfx('roar'); break;
     case 'ult': FX.dark = Math.max(FX.dark, 0.75); banner('萬箭齊發', 'gold'); sfx('ult'); vibrate(50); break;
     case 'ultend': if (a > 30) { floatText(String(a), rcx(S.ult.z0 + 8), S.ult.z0 + 8, 5, 3.4, C_GOLD, 1.3); } break;
@@ -173,7 +179,33 @@ function fxOn(type, a, b, c, d, e, f, g, h, i) {
     case 'boom': explode(a, b, c, e); if (d > 12) floatText(String(d), a, b, 3, e === 3 ? 3 : 2.2, e === 0 || e === 3 ? C_GOLD : C_RED, 1); sfx(e === 3 ? 'boom2' : 'boom'); if (e === 3) { FX.stop = 0.05; vibrate(50); } break;
     case 'throw': sfx('throw'); break;
     case 'feed': if (R01() < 0.5) pt(SP_STAR, b, c, 1.2, 0, 0, 5, 0.3, 1, C_GOLD, PF_ADD | PF_SHRINK, 0, R01() * 3); sfx('feed'); break;
-    case 'built': burst(a.x, a.z, 1.5, 36, C_GOLD, 12, 0.5, 0.9, PF_ADD); ringFx(a.x, a.z, 5, C_GOLD, 0.5, true); if (a.kind !== 'sluice') say(a.kind === 'ballista' ? '連弩車完成，開始放箭' : '轟天砲完成，開始轟炸', 0); sfx('built'); break;
+    case 'built':
+      burst(a.x, a.z, 1.5, 36, C_GOLD, 12, 0.5, 0.9, PF_ADD); ringFx(a.x, a.z, 5, C_GOLD, 0.5, true); sfx('built');
+      if (a.kind === 'bigcannon') { banner('奪下紅衣大砲', 'gold'); say('砲口調轉，直轟敵城', 0); addShake(8); }
+      else if (a.kind === 'battery') say('奪下砲台，砲口調轉', 0);
+      else if (a.kind !== 'sluice') say(a.kind === 'ballista' ? '連弩車完成，開始放箭' : '轟天砲完成，開始轟炸', 0);
+      break;
+    case 'gustwarn': say(a > 0 ? '狂風將起　→ → →' : '← ← ←　狂風將起', 1); sfx('warn2'); break;
+    case 'gust': sfx('wind'); addShake(3); break;
+    case 'gustend': break;
+    case 'twister': sfx('wind'); addShake(6); break;
+    case 'twend': explode(a.x, a.z, 3, 1); break;
+    case 'ram': addShake(12); vibrate(60); break;
+    case 'collapse': if (a === 1) { say('身後的橋塌過來了！', 1); sfx('warn2'); } else { banner('橋要塌了', 'red'); addShake(10); vibrate(80); } break;
+    case 'rush': banner('疾行', 'blue'); sfx('charge'); FX.armyPop = 1; break;
+    case 'fist': sfx('windup'); break;
+    case 'slam': explode(a.x, a.z, a.r, 1); ringFx(a.x, a.z, a.r * 1.3, rgba(255, 150, 90, 255), 0.5, false); addShake(18); vibrate(60); sfx('smash'); if (b > 12) floatText(String(b), a.x + (a.sd || 0) * 2, a.z, 3, 2.6, C_RED, 1); break;      // 雙拳同時落下：數字往各自那一側錯開，才不會黏成一個數
+    case 'cgun': for (let k = 0; k < 6; k++) pt(SP_PUFF, a.x, a.z - 2, 9, rnf(-2, 2), rnf(-3, 0), rnf(1, 4), 0.7, 2, rgba(90, 80, 75, 220), PF_GROW, -2); sfx('mortar'); break;
+    case 'colossus': banner('帝王機關巨像', 'boss'); FX.dark = 1; addShake(22); sfx('warning'); speak('警告，帝王巨像現身'); vibrate(200); say('對準巨像放箭；地上亮起紅圈就閃開', 1); break;
+    case 'volley': sfx('throw'); break;
+    case 'roll': sfx('giant'); break;
+    case 'rollbreak': explode(a.x, a.z, a.r + 1.5, 1); sfx('boom'); break;
+    case 'wheelnear':
+      if (a === 1) say('巨輪城逼近！把兵送進城門頂住它', 1);
+      else if (a === 2) { banner('巨輪城逼近', 'red'); sfx('horn'); }
+      else { banner('巨輪城撞城', 'red'); sfx('warning'); addShake(18); vibrate(150); }
+      break;
+    case 'foefire': for (let k = 0; k < 5; k++) pt(SP_PUFF, a.x, a.z - 0.5, 2.2, rnf(-1.5, 1.5), rnf(-2, 0), rnf(2, 5), 0.6, a.kind === 'bigcannon' ? 2 : 1.3, rgba(90, 80, 75, 220), PF_GROW, -2); sfx(a.kind === 'bigcannon' ? 'boom' : 'mortar'); break;
     case 'bhit': pt(SP_STAR, a.x, a.z, 1.4, 0, 0, 0, 0.12, 1.6, C_WHITE, PF_ADD | PF_SHRINK, 0, R01() * 3); sfx('feed'); break;
     case 'clank': if (R01() < 0.5) pt(SP_STAR, a, b, 1, 0, 0, 0, 0.12, 1.2, rgba(220, 230, 255, 255), PF_ADD | PF_SHRINK, 0, R01() * 3); sfx('clank'); break;
     case 'spark': burst(a, b, 2, 4, C_GOLD, 8, 0.35, 0.4, PF_ADD); break;
@@ -202,15 +234,20 @@ function fxOn(type, a, b, c, d, e, f, g, h, i) {
     case 'rw': {
       const col = a.rw === 'troop' ? rgba(120, 200, 255, 255) : C_GOLD;
       burst(a.x, a.z, 1.2, 20, col, 11, 0.45, 0.7, PF_ADD); ringFx(a.x, a.z, 3.4, col, 0.4, true);
-      for (let k = 0; k < 5; k++) pt(SP_PUFF, a.x + rnf(-0.6, 0.6), a.z, 0.8, rnf(-3, 3), rnf(-2, 2), rnf(2, 5), 0.5, 1.2, rgba(200, 150, 90, 230), PF_GROW, 0);
+      for (let k = 0; k < 5; k++) pt(SP_PUFF, a.x + rnf(-0.6, 0.6), a.z, 0.8, rnf(-3, 3), rnf(-2, 2), rnf(2, 5), 0.5, 1.2, a.ice ? rgba(215, 240, 255, 230) : rgba(200, 150, 90, 230), PF_GROW, 0);
+      if (a.ice && a.rw !== 'wall') { for (let k = 0; k < 12; k++) pt(SP_DOT, a.x + rnf(-a.hw, a.hw), a.z, 1, rnf(-3, 3), rnf(1, 5), rnf(4, 9), 0.7, 0.6, rgba(220, 245, 255, 255), PF_SHRINK, 24); sfx('gbreak'); }      // 冰封的援兵、機關車：冰塊碎開
       if (a.rw === 'troop') { floatText('+' + a.n, a.x, a.z, 3.4, 2.4, rgba(150, 215, 255, 255), 0.9); FX.armyPop = 1; sfx('rw'); }
       else if (a.rw === 'bow') { say(S.sq.wpn >= 3 ? '連弩升到頂了，箭又快又密' : '撿到連弩，箭射得更快了', 0); sfx('rw'); }
+      else if (a.rw === 'block') { for (let k = 0; k < 16; k++) pt(SP_ROCK, rnf(-7, 7), a.z, 1, rnf(-3, 3), rnf(2, 7), rnf(5, 11), 0.9, 1, rgba(200, 150, 100, 255), PF_BOUNCE, 26, R01() * 6, rnf(-9, 9)); say('拒馬破了，快走！', 0); addShake(10); sfx('gbreak'); }
+      else if (a.rw === 'wall') { for (let k = 0; k < 14; k++) pt(SP_DOT, a.x + rnf(-a.hw, a.hw), a.z, 1, rnf(-3, 3), rnf(1, 5), rnf(4, 9), 0.7, 0.6, rgba(220, 245, 255, 255), PF_SHRINK, 24); sfx('gbreak'); }
       else { banner(a.elite === 'mortar' ? '轟天砲助陣' : '連弩車助陣', 'gold'); addShake(8); sfx('built'); }
       break;
     }
     case 'mfort': say('橋頭堡就在前面，兵力要比它多', 0); break;
     case 'strafe': if (a.fly) { say('赤龍俯衝！離開火線', 1); sfx('warn2'); vibrate(30); } else sfx('warn2'); break;
-    case 'breath': addShake(12); addFlash(0xff7a20, 0.16); sfx('breath'); break;
+    case 'breath': if (a.snow) { addShake(9); sfx('aval'); break; } addShake(12); addFlash(0xff7a20, 0.16); sfx('breath'); break;
+    case 'crack': sfx('crack'); break;
+    case 'icebreak': for (let k = 0; k < 14; k++) pt(SP_DOT, a.x + rnf(-a.w / 2, a.w / 2), a.z + rnf(0, a.len), 0.3, rnf(-2, 2), rnf(-2, 2), rnf(3, 8), 0.7, 0.5, rgba(220, 245, 255, 255), PF_SHRINK, 24); sfx('splash'); addShake(5); break;
     case 'dragon': banner('赤龍', 'boss'); FX.dark = 1; addShake(20); sfx('warning'); speak('警告，赤龍來襲'); vibrate(200); say('對準牠放箭，火線亮起就閃開', 1); break;
     case 'siege': banner('全軍衝鋒', 'gold'); addShake(10); sfx('horn'); vibrate(50); break;
     case 'rescue':
@@ -221,6 +258,8 @@ function fxOn(type, a, b, c, d, e, f, g, h, i) {
 
 function fxStep(dt, rdt) {
   FX.time += rdt; FX.bodies = 0; FX.puffs = 0;
+  // 巨輪城在走：車輪底下揚起塵土
+  if (S.wheel && S.wheel.vel < -0.05 && S.fort.alive && dt > 0 && R01() < 0.6) { const hw = rhw(S.fz) + 1.5, k = R01() < 0.5 ? -1 : 1; pt(SP_PUFF, k * hw * (0.42 + 0.44 * R01()), S.fz + 0.4, 0.4, rnf(-1, 1), rnf(0.5, 2), rnf(1, 3), 0.9, 1.8, rgba(170, 150, 120, 200), PF_GROW, -1); }
   // 殺敵速率（每秒）— 給音效與戰況條用
   FX.killRate += (FX.killsF / Math.max(rdt, 0.001) - FX.killRate) * Math.min(1, rdt * 6); FX.killsF = 0;
   if (FX.shake > 0.1) { const a = FX.shake * V.u; FX.shx = (R01() * 2 - 1) * a; FX.shy = (R01() * 2 - 1) * a; FX.shake *= Math.pow(0.0025, rdt); } else { FX.shake = 0; FX.shx = FX.shy = 0; }

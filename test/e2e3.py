@@ -25,7 +25,8 @@ async def main():
             res = await pg.evaluate("({shown: !document.getElementById('result').hidden, title: document.getElementById('resTitle').textContent, sub: document.getElementById('resSub').textContent, stars: document.querySelectorAll('#resStars .on').length, lostLbl: document.getElementById('rsLostL').textContent, lostVal: document.getElementById('rsLost').textContent, coins: document.getElementById('rsCoins').textContent, nextHidden: document.getElementById('btnNext').hidden, tip: document.getElementById('resTip').hidden ? '' : document.getElementById('resTip').textContent, save: localStorage.getItem('wanjun-pozhen-1')})")
             print(tag, 'result', json.dumps(res, ensure_ascii=False)); return res
         await pg.click('#btnOpt'); await pg.wait_for_timeout(200); await pg.click('#btnUnlock'); await pg.wait_for_timeout(300)
-        await pg.locator('#lvls .lv').nth(5).click(); await pg.wait_for_timeout(500)
+        await pg.locator('#chaps button').nth(1).click(); await pg.wait_for_timeout(300)      # 遠征篇
+        await pg.locator('#lvls .lv').nth(0).click(); await pg.wait_for_timeout(500)
         print('home L6', json.dumps(await st(), ensure_ascii=False))
         await pg.click('#btnGo'); await pg.wait_for_timeout(700)
         print('started', json.dumps(await st(), ensure_ascii=False))
@@ -48,7 +49,8 @@ async def main():
             print('home again', json.dumps(await st(), ensure_ascii=False))
         if '--skip10' not in sys.argv:
             await pg.evaluate("() => { const w = window.__wj; w.goHome(); }")
-            await pg.locator('#lvls .lv').nth(9).click(); await pg.wait_for_timeout(400); await pg.click('#btnGo'); await pg.wait_for_timeout(600)
+            await pg.locator('#chaps button').nth(1).click(); await pg.wait_for_timeout(300)
+            await pg.locator('#lvls .lv').nth(4).click(); await pg.wait_for_timeout(400); await pg.click('#btnGo'); await pg.wait_for_timeout(600)
             await pg.evaluate(drive)
             r10 = await play('L10', 700)
             await pg.wait_for_timeout(1200); await pg.screenshot(path=str(root / 'shots/e3_result10.png'))

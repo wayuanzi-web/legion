@@ -2,7 +2,7 @@
 // 環境變數 N = 每種跑幾場、DIFF = 難度、BOTS = 要跑哪些自動玩家（good,casual,weak,afk,fix:<x>）
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..', 'src', 'parts');
-const files = fs.readdirSync(dir).filter((f) => /^(10|50|52|53|60|65)-.*\.js$/.test(f)).sort();
+const files = fs.readdirSync(dir).filter((f) => /^(10|5[0-4]|60|65)-.*\.js$/.test(f)).sort();
 const src = files.map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
   + '\nreturn {S, simInit, simStep, simUlt, botFor, LEVELS, L};';
 const { S, simInit, simStep, simUlt, botFor, LEVELS } = new Function(src)();

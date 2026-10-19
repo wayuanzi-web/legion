@@ -42,11 +42,11 @@ function startLevel(idx) {
   $('hint').textContent = march ? '← 左右拖曳，帶隊前進 →' : '← 左右拖曳，移動兵砲 →';
   $('hint').hidden = march ? SV.seenM : !(idx === 0 && !SV.seen); $('hint').classList.toggle('up', march);
   $('wallLbl').textContent = march ? '路程' : '城牆'; $('wallBar').classList.remove('warn'); $('wallBar').classList.toggle('road', march);
-  $('tugRl').textContent = march ? (LEVELS[idx].boss === 'dragon' ? '赤龍' : '敵堡') : '赤潮';
+  $('tugRl').textContent = march ? (LEVELS[idx].boss === 'dragon' ? '赤龍' : LEVELS[idx].boss === 'colossus' ? '巨像' : '敵堡') : LEVELS[idx].wheel ? '巨輪' : '赤潮';
   $('banner').className = ''; $('say').className = 'chamfer'; $('mile').className = '';
   setTimeout(() => { if (G.mode === 'play' && G.run === run) { const el = $('banner'); el.className = 'blue'; el.innerHTML = ''; const s = document.createElement('small'); s.textContent = '第' + NUM_ZH[idx] + '關'; el.appendChild(s); el.appendChild(document.createTextNode(LEVELS[idx].name)); replay(el, 'show'); } }, 60);
   setTimeout(() => { if (G.mode === 'play' && G.run === run && S.time < 6) say(LEVELS[idx].tip); }, 1900);
-  musStart(LEVELS[idx].theme, false);
+  musStart(LEVELS[idx].mus !== undefined ? LEVELS[idx].mus : LEVELS[idx].theme, false);      // 天下篇的關卡另外指定配樂
   hudUpdate(true);
 }
 function goHome() {
@@ -69,6 +69,21 @@ function finishLevel() {
   showResult(won, { idx, stars, kills: S.kills, army: S.maxArmy, lost: S.lost, time: S.time, coins, march: S.mode === 1, left: S.survive });
 }
 
+// 風向計：預告中閃爍並顯示將起的風向；起風時箭頭個數隨風力增減
+function windUpdate() {
+  const w = S.wind, el = $('wind');
+  if (!w) { if (!el.hidden) el.hidden = true; G.windKey = ''; return; }
+  const g = w.gusts[w.i]; let dir = 0, n = 0, warn = false;
+  if (w.v !== 0) { dir = w.v > 0 ? 1 : -1; n = Math.max(1, Math.ceil(Math.abs(w.v) / w.max * 3 - 0.01)); }
+  else if (g && S.state === 'play' && S.time >= g[0] - w.warn) { dir = g[1]; n = 3; warn = true; }
+  const key = dir + '|' + n + '|' + warn;
+  if (key === G.windKey) return;
+  G.windKey = key; el.hidden = false;
+  const ar = (d) => '<i>' + (d > 0 ? '▶' : '◀').repeat(n) + '</i>';
+  el.innerHTML = !dir ? '<b>風</b><i>平</i>' : dir > 0 ? '<b>風</b>' + ar(1) : ar(-1) + '<b>風</b>';
+  el.className = 'chamfer' + (warn ? ' warn' : !dir ? ' calm' : '');
+  el.setAttribute('aria-label', !dir ? '無風' : (warn ? '即將起風，' : '') + (dir > 0 ? '往右吹' : '往左吹'));
+}
 function setTrack(el, f) { el.style.transform = 'scaleX(' + clamp(f, 0, 1).toFixed(3) + ')'; }
 function hudUpdate(force) {
   G.hudN++;
@@ -88,14 +103,20 @@ function hudUpdate(force) {
     setTrack($('wallBar'), S.wallHp / S.wallMax); $('wallBar').classList.toggle('warn', S.wallHp < S.wallMax * 0.4);
   }
   if (force || G.hudN % 4 === 0) {
+    windUpdate();
     $('tugB').textContent = fmt(S.B.n);
     const boss = S.boss;
-    if (!!boss !== G.bossBar) { G.bossBar = !!boss; $('tug').classList.toggle('boss', G.bossBar); $('tugRl').textContent = boss ? (boss.kind === 'dragon' ? '赤龍' : '魔王') : march ? (S.lv.boss === 'dragon' ? '赤龍' : '敵堡') : '赤潮'; }
+    if (!!boss !== G.bossBar) { G.bossBar = !!boss; $('tug').classList.toggle('boss', G.bossBar); $('tugRl').textContent = boss ? (boss.kind === 'dragon' ? '赤龍' : boss.kind === 'colossus' ? '巨像' : '魔王') : march ? (S.lv.boss === 'dragon' ? '赤龍' : S.lv.boss === 'colossus' ? '巨像' : '敵堡') : S.wheel ? '巨輪' : '赤潮'; }
     if (boss) { $('tugR').textContent = fmt(Math.ceil(boss.hp)); setTrack($('tugBar'), boss.hp / boss.maxHp); }
     else if (march) {
       // 我軍人數對上橋頭堡的兵力：藍條過半就是夠打
       const f = S.fort.alive ? S.fort.hp : S.state === 'won' ? 0 : (S.sq.fortN || S.sq.bossN), n = S.B.n;
       $('tugR').textContent = fmt(Math.ceil(f)); setTrack($('tugBar'), S.state === 'won' ? 1 : clamp(n / Math.max(1, n + f), 0.02, 1));
+    }
+    else if (S.wheel) {
+      // 巨輪城：右邊寫它離撞城線還有多遠，藍條越短代表它越近
+      const w = S.wheel, d = Math.max(0, S.fz - w.stop);
+      $('tugR').textContent = fmt(Math.ceil(d)); setTrack($('tugBar'), S.state === 'won' ? 1 : clamp(d / (L - w.stop), 0.02, 1));
     }
     else { $('tugR').textContent = fmt(S.R.n); setTrack($('tugBar'), S.state === 'won' ? 1 : clamp(S.front / L, 0.02, 1)); }
     const h = S.hero, hm = $('heroMeter');

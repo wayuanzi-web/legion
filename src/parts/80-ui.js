@@ -27,8 +27,9 @@ const UPS = [
   { k: 'wall', name: '城牆', desc: '城牆多撐八下；行軍時開局多帶三個兵' }
 ];
 const UP_COST = [120, 220, 360, 540, 760];
-const NUM_ZH = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
-const CHAPTERS = [[0, '破陣篇'], [5, '遠征篇']];
+const NUM_ZH = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六'];
+const CHAPTERS = [[0, '破陣篇'], [5, '遠征篇'], [10, '天下篇']];      // [第一關的索引, 篇名]
+const chapOf = (i) => { let k = 0; for (let c = 0; c < CHAPTERS.length; c++) if (i >= CHAPTERS[c][0]) k = c; return k; };
 const UI = { sel: 0, mode: 'home', wipeArm: 0 };
 
 function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
@@ -43,10 +44,27 @@ function mile(txt) { const el = $('mile'); el.textContent = txt; replay(el, 'sho
 
 function starsHtml(n) { return '<em>' + '★'.repeat(n) + '</em>' + '★'.repeat(3 - n); }
 function homeRender() {
+  // 篇章分頁：顯示選中的關卡所在的那一篇
+  const ci = chapOf(UI.sel), tabs = $('chaps'); tabs.innerHTML = '';
+  CHAPTERS.forEach((c, k) => {
+    const a = c[0], b = k + 1 < CHAPTERS.length ? CHAPTERS[k + 1][0] : LEVELS.length;
+    let st = 0; for (let i = a; i < b; i++) st += SV.stars[i];
+    const t = document.createElement('button'); t.className = 'chamfer' + (a >= SV.open ? ' locked' : '');
+    t.setAttribute('role', 'tab'); t.setAttribute('aria-selected', String(k === ci));
+    t.innerHTML = '<span>' + c[1] + '</span><small><em>★</em>' + st + '/' + (b - a) * 3 + '</small>';
+    t.addEventListener('click', () => {
+      if (k === chapOf(UI.sel)) return;
+      auInit(); sfx('click');
+      // 換篇：停在這一篇最後一個打得到的關卡（還沒解鎖就停在第一關）
+      UI.sel = clamp(Math.min(b, SV.open) - 1, a, b - 1); homeRender(); if (typeof demoStart === 'function') demoStart(UI.sel);
+    });
+    tabs.appendChild(t);
+  });
   const box = $('lvls'); box.innerHTML = '';
+  const c0 = CHAPTERS[ci][0], c1 = ci + 1 < CHAPTERS.length ? CHAPTERS[ci + 1][0] : LEVELS.length;
+  box.style.gridTemplateColumns = 'repeat(' + (c1 - c0) + ', 1fr)'; box.classList.toggle('six', c1 - c0 > 5);
   LEVELS.forEach((lv, i) => {
-    const ch = CHAPTERS.find((c) => c[0] === i);
-    if (ch) { const cap = document.createElement('div'); cap.className = 'chap'; cap.textContent = ch[1]; box.appendChild(cap); }
+    if (i < c0 || i >= c1) return;
     const b = document.createElement('button'); const locked = i >= SV.open;
     b.className = 'lv chamfer' + (locked ? ' locked' : ''); b.setAttribute('role', 'option'); b.setAttribute('aria-selected', String(i === UI.sel));
     b.setAttribute('aria-label', '第' + NUM_ZH[i] + '關 ' + lv.name + (locked ? '（未解鎖）' : ''));
@@ -103,17 +121,32 @@ const LOSE_TIPS_M = [
   '木桶上的數字是要射幾箭。來不及射破就別硬撞，撞一下賠一個兵。',
   '敵陣窄的時候直接繞開；繞不開就對準它，讓箭先射掉一批。'
 ];
-// 行軍關再依這一關有什麼，多放一兩句對題的
+// 依這一關有什麼，多放一兩句對題的
 function loseTips(idx, march) {
-  if (!march) return LOSE_TIPS;
-  const lv = LEVELS[idx], t = LOSE_TIPS_M.slice();
+  const lv = LEVELS[idx];
+  if (!march) {
+    if (!lv.wind && !lv.wheel && !(lv.peds || []).some((p) => p.foe)) return LOSE_TIPS;
+    const t = LOSE_TIPS.slice();
+    if ((lv.peds || []).some((p) => p.foe)) t.push('兵砲移到最邊上，兵就會走進路邊的敵軍砲台，把它奪下來。', '地上亮起紅圈就是砲彈要落下來：先把兵砲移開，別一直把兵往砲彈底下送。');
+    if (lv.wind) t.push('風往哪邊吹，就往反方向偏著瞄；左上角的風向計會先預告下一陣風。', '旋風碰到誰都捲走：它往前庭捲過來時，把兵砲移到另一邊。');
+    if (lv.wheel) t.push('衝進城門的兵會把巨輪城頂回去：兵越多，它越推不動。', '別讓巨輪城推到紅色的撞城線，它一停下來就會開始砸城牆。');
+    return t;
+  }
+  const t = LOSE_TIPS_M.slice();
   if (lv.fortN) t.push('到橋頭堡時兵力要比它多才攻得下來，途中的援兵和乘法門別放過。');
   if (lv.track.some((e) => e.t === 'hole' || e.t === 'saw')) t.push('缺口和滾刀只佔半邊橋面：往另一邊靠，隊伍會擠成長龍鑽過去。');
+  if (lv.track.some((e) => e.t === 'volley')) t.push('地上的紅圈是投石的落點，看到就往旁邊閃。');
+  if (lv.track.some((e) => e.t === 'boulder')) t.push('滾石上的數字是要射幾箭：兵多就對準它射碎，兵少就閃開。');
+  if (lv.track.some((e) => e.t === 'ice')) t.push('冰面會滑：轉向要提早，快到位置就放手。');
+  if (lv.track.some((e) => e.t === 'crack')) t.push('薄冰一踩就碎，從旁邊繞過去；敵人踩上去一樣會掉下去。');
+  if (lv.collapse) t.push('拒馬擋路時隊伍會停下來，身後的橋會一路塌過來：兵越多箭越密，拒馬破得越快。', '疾行門能讓全隊加速，甩開身後的崩塌。');
+  if (lv.boss === 'colossus') t.push('巨像的拳頭砸下來前，地上會先亮紅圈；暴怒後雙拳齊砸橋中央，往欄杆靠、擠成長龍就躲得開。');
   if (lv.boss === 'dragon') t.push('橋面一亮起紅色火線就往另一邊閃；等火燒過去，再回來對準赤龍放箭。', '兵越多箭越密，赤龍的血掉得越快：路上的乘法門和援兵能拿就拿。');
   return t;
 }
+const WIN_TITLE = { 4: '天下太平', 9: '屠龍凱旋', 15: '天下一統' };      // 每一篇最後一關打贏的標題
 function showResult(won, st) {
-  $('resTitle').textContent = won ? (st.idx === 4 ? '天下太平' : st.idx === LEVELS.length - 1 ? '屠龍凱旋' : '大獲全勝') : st.march ? '全軍覆沒' : '城牆失守';
+  $('resTitle').textContent = won ? (WIN_TITLE[st.idx] || '大獲全勝') : st.march ? '全軍覆沒' : '城牆失守';
   $('resTitle').className = won ? '' : 'lose';
   $('resSub').textContent = '第' + NUM_ZH[st.idx] + '關 ' + LEVELS[st.idx].name;
   const stars = $('resStars'); stars.hidden = !won;

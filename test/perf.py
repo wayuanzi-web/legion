@@ -13,7 +13,7 @@ async def main():
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto((root / 'src/dist/index.html').as_uri())
         await pg.wait_for_timeout(500)
-        for level, t in [(1, 20), (3, 40), (5, 32), (5, 34), (6, 60), (7, 12), (8, 72), (9, 30), (10, 66), (10, 95)]:
+        for level, t in [(1, 20), (3, 40), (5, 32), (5, 34), (6, 60), (7, 12), (8, 72), (9, 30), (10, 66), (10, 95), (11, 30), (12, 60), (13, 45), (14, 70), (15, 30), (16, 80), (16, 110)]:
             r = await pg.evaluate('''([level, t]) => { const w = window.__wj, S = w.S; w.G.freeze = true; w.startLevel(level - 1); const bot = w.botFor('good');
               let guard = 0; while (S.time < t && S.state === 'play' && guard++ < 4000) w.advance(0.1, bot);
               const N = 120; let t0 = performance.now(); for (let i = 0; i < N; i++) { bot(1/60); w.simStep(1/60); } const sim = (performance.now() - t0) / N;

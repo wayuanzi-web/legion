@@ -7,7 +7,7 @@
   const shareUrl = location.origin + location.pathname + '?openExternalBrowser=1';   // LINE 看到這個參數會改用手機瀏覽器開
   let deferred = null;
 
-  // 分享、安裝放在主畫面左右上角的小按鈕（十關的選單已經把下面排滿了）
+  // 分享、安裝放在主畫面左右上角的小按鈕（下面已經排滿了關卡選單）
   const row = document.createElement('div'); row.className = 'webbar';
   row.innerHTML = '<button id="btnShare" class="btn chip" aria-label="分享給朋友"><span>分享</span></button><button id="btnInstall" class="btn chip" aria-label="安裝到主畫面"><span>安裝</span></button>';
   $('home').appendChild(row); $('home').classList.add('web');

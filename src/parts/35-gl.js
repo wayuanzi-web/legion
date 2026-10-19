@@ -108,6 +108,9 @@ function flush2d() {
       c.beginPath(); c.ellipse(cx, cy, Math.max(0.5, w * 0.4), Math.max(0.5, h * 0.4), Math.atan2(y1 - y0, x1 - x0), 0, TAU); c.fill();
     } else if (straight) {
       c.drawImage(img, u0 * iw, v0 * ih, (u1 - u0) * iw, (v1 - v0) * ih, x0, y0, x1 - x0, y2 - y1);
+    } else if (Math.abs(y1 - y0) < 0.01 && x1 < x0 && y2 > y1) {      // 左右翻面的 sprite（寬度給負的）
+      c.save(); c.translate(x0, y0); c.scale(-1, 1);
+      c.drawImage(img, u0 * iw, v0 * ih, (u1 - u0) * iw, (v1 - v0) * ih, 0, 0, x0 - x1, y2 - y1); c.restore();
     } else {
       c.save(); c.translate((x0 + x2) / 2, (y0 + y2) / 2); c.rotate(Math.atan2(y1 - y0, x1 - x0));
       c.drawImage(img, u0 * iw, v0 * ih, (u1 - u0) * iw, (v1 - v0) * ih, -w / 2, -h / 2, w, h); c.restore();

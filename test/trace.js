@@ -1,7 +1,7 @@
 // node test/trace.js <level> [bot] [up] [diff]   破陣關每 4 秒印一行：戰線、兩軍人數、城牆、敵城兵力、機關狀態
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..', 'src', 'parts');
-const src = fs.readdirSync(dir).filter((f) => /^(10|50|52|53|60|65)-.*\.js$/.test(f)).sort().map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
+const src = fs.readdirSync(dir).filter((f) => /^(10|5[0-4]|60|65)-.*\.js$/.test(f)).sort().map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
   + '\nreturn {S, simInit, simStep, simUlt, botFor, LEVELS, L};';
 const { S, simInit, simStep, botFor } = new Function(src)();
 const arg = process.argv.slice(2), li = +arg[0] - 1, upL = +(arg[2] || 0);

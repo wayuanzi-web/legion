@@ -1,7 +1,7 @@
 // node test/sweep1.js <level> <up> <flow[:speedMul[:giantMul]]...>  單一關卡：掃流量／行軍速度，看三種自動玩家的勝率／用時／城牆
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..', 'src', 'parts');
-const src = fs.readdirSync(dir).filter((f) => /^(10|50|52|53|60|65)-.*\.js$/.test(f)).sort().map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
+const src = fs.readdirSync(dir).filter((f) => /^(10|5[0-4]|60|65)-.*\.js$/.test(f)).sort().map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
   + '\nreturn {S, simInit, simStep, simUlt, makeBot, LEVELS, L};';
 const G = new Function(src)();
 const { S, simInit, simStep, makeBot, LEVELS } = G;

@@ -1,7 +1,7 @@
 // node test/sim.js [level|all] [bot] [seeds] [up] [-v]   例：node test/sim.js all casual 3 0
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..', 'src', 'parts');
-const src = fs.readdirSync(dir).filter((f) => /^(10|50|52|53|60|65)-.*\.js$/.test(f)).sort().map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
+const src = fs.readdirSync(dir).filter((f) => /^(10|5[0-4]|60|65)-.*\.js$/.test(f)).sort().map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
   + '\nreturn {S, simInit, simStep, simUlt, makeBot, LEVELS, L, srand, rnd};';
 const G = new Function(src)();
 const { S, simInit, simStep, makeBot, LEVELS } = G;

@@ -1,13 +1,15 @@
 /* ===== 65-bot: 自動玩家。主畫面背景的示範戰局用它，Node 裡估難度也用它 ===== */
 function botOvl(a0, a1, b0, b1) { return Math.max(0, Math.min(a1, b1) - Math.max(a0, b0)); }
 function botGateX(g, t) { return g.amp ? g.x0 + g.amp * tri((t - g.born) / g.per + g.ph) : g.x; }
-// 從 x 位置開砲，一個兵平均會變成幾個
+// 從 x 位置開砲，一個兵平均會變成幾個。botWindK：風沙關裡算不算風（2 = 照預告的風算、1 = 只看現在的風、0 = 不管風）
+let botWindK = 0;
 function botMult(x) {
   const gs = S.gates.filter((g) => g.alive).sort((a, b) => a.z - b.z);
   let M = 1, s = 0.15; const c = x;
   for (const g of gs) {
     const tA = S.time + (g.z - CANZ) / BSPD, gx = botGateX(g, tA), gm = g.alt ? altM(g, tA) : g.m;
-    const f = botOvl(c - s, c + s, gx - g.w / 2, gx + g.w / 2) / (2 * s);
+    const cg = botWindK ? c + windDrift(g.z, botWindK === 2) : c;
+    const f = botOvl(cg - s, cg + s, gx - g.w / 2, gx + g.w / 2) / (2 * s);
     if (f <= 0) continue;
     M = M * (1 - f) + M * f * gm;
     if (gm > 1 && f > 0.3) s = Math.max(s, (0.7 + 0.65 * Math.sqrt(gm)) * 0.8);
@@ -23,6 +25,7 @@ function makeBot(skill, rand) {
     if (!Pm) return;
     if (S.time >= st.next) {
       st.next = S.time + Pm.iv;
+      botWindK = S.wind ? (skill === 'good' ? 2 : skill === 'casual' ? 1 : 0) : 0;
       let best = -1, bx = 0;
       for (let x = -CAN_LIM; x <= CAN_LIM; x += 0.5) {
         const v = botMult(x) - Math.abs(x - S.cannonX) * 0.01;
@@ -32,6 +35,11 @@ function makeBot(skill, rand) {
       if (S.time > 4 && S.surge.on <= 0) {
         for (const p of S.peds) {
           if (p.kind === 'sluice') continue;
+          if (p.kind === 'battery' || p.kind === 'bigcannon') {
+            // 敵軍砲台：戰線推過去了才送兵去奪。兵從兵砲出去是沿著線道走，瞄最邊上，兵才會走在那一側最外面的線道
+            if (!p.built && S.front > p.z + 3 && (skill === 'good' || S.time % 9 < 5)) { bx = p.edge * CAN_LIM; break; }
+            continue;
+          }
           if (!p.built && S.front > (skill === 'good' ? 32 : 36) && (skill === 'good' || S.time % 9 < 4.5)) { bx = clamp(p.x, -CAN_LIM, CAN_LIM); break; }
         }
       }
@@ -73,7 +81,8 @@ function marchScore(x, n, look) {
   for (const g of S.gates) {
     if (!g.alive || g.z < MZ_REAR || g.z > zf + look) continue;
     const gx = botGateX(g, S.time + Math.max(0, g.z - q.cz) / v), ov = botOvl(x0, x1, gx - g.w / 2, gx + g.w / 2);
-    if (g.add !== undefined) { if (ov > 0.3) sc += g.add >= 0 ? (g.add + 2) * wt(g.z) : Math.max(g.add, -n) * 1.5 * wd(g.z); }
+    if (g.rush) { if (ov > 0.3) sc += (S.col ? 6 + n * 0.5 * clamp((collapseZ() + 34) / 30, 0.15, 1) : 4) * wt(g.z); }      // 疾行門：崩塌追得越近越值得
+    else if (g.add !== undefined) { if (ov > 0.3) sc += g.add >= 0 ? (g.add + 2) * wt(g.z) : Math.max(g.add, -n) * 1.5 * wd(g.z); }
     else if (g.m >= 1) sc += n * (ov / (2 * a)) * (g.m - 1) * wt(g.z);
     else sc += n * (ov / (2 * a)) * (g.m - 1) * wd(g.z);
   }
@@ -85,6 +94,7 @@ function marchScore(x, n, look) {
     sc += val * wt(o.z) - Math.min(n, left) * 1.2 * wd(o.z) / 3;
   }
   for (const h of S.holes) { if (h.z > zf + look || h.z + h.len < MZ_REAR) continue; sc -= n * botOvl(x0, x1, h.x - h.w / 2 - 0.3, h.x + h.w / 2 + 0.3) / (2 * a) * wd(h.z); }
+  for (const c of S.cracks) { if (c.z > zf + look || c.z + c.len < MZ_REAR) continue; sc -= n * botOvl(x0, x1, c.x - c.w / 2 - 0.3, c.x + c.w / 2 + 0.3) / (2 * a) * wd(c.z) * 0.8; }
   for (const s of S.saws) {
     if (s.z > zf + look || s.z < MZ_REAR) continue;
     const sx = s.amp ? s.x0 + s.amp * tri((S.time + Math.max(0, s.z - q.cz) / v - s.born) / s.per + s.ph) : s.x;
@@ -97,6 +107,19 @@ function marchScore(x, n, look) {
   for (const f of S.strafes) if (f.t < f.warn + f.dur) {
     sc -= n * botOvl(x0, x1, f.x - f.w / 2 - 0.4, f.x + f.w / 2 + 0.4) / (2 * a) * 3;
     if (f.t > f.warn - 0.8 && (x - f.x) * (q.x - f.x) < 0) sc -= n * 2;      // 火快燒過來了，別橫越火線
+  }
+  // 投石的落點：落地時還在隊伍範圍裡的紅圈，站進去就會被砸
+  for (const m of S.marks) {
+    const tl = m.dur - m.t, zl = m.z - q.v * tl;
+    if (tl < 0 || zl < MZ_REAR - m.r || zl > zf + m.r) continue;
+    sc -= n * botOvl(x0, x1, m.x - m.r - 0.5, m.x + m.r + 0.5) / (2 * a) * 3;
+  }
+  // 滾石：射得碎就不怕（還有一點賞），射不碎就閃
+  for (const o of S.rolls) {
+    if (o.dead || o.z > zf + look || o.z < MZ_REAR - o.r) continue;
+    const ov = botOvl(x0, x1, o.x - o.r - 0.6, o.x + o.r + 0.6); if (ov <= 0) continue;
+    const dmg = rate * (ov / (2 * a)) * Math.max(0, o.z - zf) / (o.spd + v) * WPN_DMG[q.wpn];
+    sc -= dmg >= o.hp * 1.2 ? -2 : n * ov / (2 * a) * wd(o.z);
   }
   // 對著赤龍站，箭才射得到
   const bo = S.boss; if (bo && bo.fixed) sc += n * 0.25 * botOvl(x0, x1, bo.x - bo.r, bo.x + bo.r) / (2 * a);

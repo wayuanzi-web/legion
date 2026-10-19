@@ -57,7 +57,8 @@ const S = {
   up: { rate: 0, armor: 0, hero: 0, ult: 0, wall: 0 }, diff: null,
   // mode 0 = 破陣（兵砲對赤潮）、1 = 行軍（帶隊過橋，見 52-march）
   mode: 0, fz: L, xLim: CAN_LIM, ctlZ: CANZ, scrollAcc: 0, sq: null, mf: null, track: null, ti: 0,
-  holes: [], saws: [], strafes: [], rgates: [], flood: null, survive: 0
+  holes: [], saws: [], strafes: [], rgates: [], flood: null, survive: 0,
+  wind: null, twisters: [], wheel: null, rolls: [], cracks: [], ices: [], col: null, blockZ: 1e9
 };
 
 function ev(a, b, c, d, e, f, g, h, i, j) { if (S.on) S.on(a, b, c, d, e, f, g, h, i, j); }
@@ -99,22 +100,22 @@ function spawnFromFort(kind, la, lb) {
   // 從敵城門口湧出，再橫向散開到各自的線道（線道用黃金比例數列排，才不會東一堆西一堆）
   S.spawnSeq = (S.spawnSeq + 0.6180339887) % 1;
   const tt = la + (lb - la) * S.spawnSeq;
-  addRed(clamp(tt * 0.35 + (rnd() - 0.5) * 0.25, -1, 1), L - 0.6 - rnd() * 1.2, kind, tt);
+  addRed(clamp(tt * 0.35 + (rnd() - 0.5) * 0.25, -1, 1), S.fz - 0.6 - rnd() * 1.2, kind, tt);
 }
 function addBig(o) {
   o.flash = 0; o.anim = rnd() * 9; o.dead = false; o.cd = o.cd || 0; o.tm = 0; o.y = o.y || 0;
   o.maxHp = o.hp; S.bigs.push(o); return o;
 }
 function spawnBrute(lane) {
-  const z = L - 2.5;
+  const z = S.fz - 2.5;
   ev('big', addBig({ team: 1, kind: 'brute', t: lane, z, x: laneX(lane, z), r: 0.95, hp: Math.round((S.lv.bruteHp || 30) * S.diff.hp), spd: 2.3, st: 'walk' }));
 }
 function spawnGiant(lane) {
-  const z = L - 3;
+  const z = S.fz - 3;
   ev('big', addBig({ team: 1, kind: 'giant', t: lane, z, x: laneX(lane, z), r: 1.9, hp: Math.round((S.lv.giantHp || 400) * S.diff.hp), spd: 1.45, st: 'walk', cd: 1.5 }));
 }
 function spawnBoss() {
-  const z = L - 3;
+  const z = S.fz - 3;
   S.boss = addBig({ team: 1, kind: 'boss', t: 0, z, x: laneX(0, z), r: 3.2, hp: Math.round((S.lv.bossHp || 2400) * S.diff.hp), spd: 1.5 * S.diff.spd, st: 'rise', cd: 3, sum: 5, rage: false });
   ev('boss', S.boss);
 }
@@ -173,9 +174,10 @@ function hurtBig(b, dmg) {
   if (b.hp <= 0) {
     b.dead = true; b.hp = 0;
     if (b.team === 1) {
-      S.kills++; S.coinsBig += b.kind === 'boss' ? 200 : b.kind === 'dragon' ? 300 : b.kind === 'giant' ? 20 : 3;
+      S.kills++; S.coinsBig += b.kind === 'boss' ? 200 : b.kind === 'dragon' ? 300 : b.kind === 'colossus' ? 400 : b.kind === 'giant' ? 20 : 3;
       ev('bigdie', b);
-      if (b.kind === 'boss' || b.kind === 'dragon') { S.boss = null; S.bossDone = true; winNow(); }
+      if (b.kind === 'colossus') { S.marks.length = 0; for (const p of S.proj) if (p.cb) p.rad = 0; }      // 還沒砸下來的拳頭、還在空中的胸口砲彈一起失效（這裡可能正在 stepProj 的迴圈裡，不能 splice）
+      if (b.kind === 'boss' || b.kind === 'dragon' || b.kind === 'colossus') { S.boss = null; S.bossDone = true; winNow(); }
     }
   }
 }
@@ -264,13 +266,16 @@ function simInit(idx, up, seed, diff) {
   S.redMinZ = L; S.front = L; S.boss = null; S.bossDone = false; S.gateSeq = 0;
   S.mode = 0; S.fz = L; S.xLim = CAN_LIM; S.ctlZ = CANZ; S.scrollAcc = 0; S.sq = null; S.mf = null; S.track = null; S.ti = 0;
   S.holes = []; S.saws = []; S.strafes = []; S.rgates = []; S.flood = null; S.survive = 0; S.blueMaxZ = 0;
+  S.wind = lv.wind ? { v: 0, i: 0, max: lv.wind.v, warn: lv.wind.warn || 2.5, gusts: lv.wind.gusts, warned: false, on: false } : null; S.twisters = []; wheelInit(lv); S.rolls = []; S.cracks = []; S.ices = []; S.col = null; S.blockZ = 1e9;
   if (lv.mode === 'march') { S.gates = []; S.peds = []; S.barrels = []; marchInit(lv, up); buildGrid(S.R); buildGrid(S.B); return; }
   S.gates = []; for (const g of lv.gates) addGate(g);
-  S.peds = (lv.peds || []).map((p) => ({ x: p.x, z: p.z, r: 1.7, need: p.need, got: 0, built: false, kind: p.kind, cool: 1, aim: 0, kick: 0, flash: 0, step: p.step || 0 }));
+  // side = 砲台蓋在路邊的崖台上（-1 左、1 右，離路緣 off）：走在那一側最外面幾條線道（|t| >= band）的兵經過時就會進去；foe = 開局在敵人手上
+  S.peds = (lv.peds || []).map((p) => ({ x: p.side ? rcx(p.z) + p.side * (rhw(p.z) + (p.off || 1.4)) : p.x, z: p.z, r: p.r || 1.7, need: p.need, got: 0, built: false, kind: p.kind, cool: 1, aim: p.foe ? Math.PI : 0, kick: 0, flash: 0, step: p.step || 0,
+    edge: p.side || 0, band: p.band || 0.62, foe: !!p.foe, iv: p.iv || 0, fcd: (p.iv || 0) * (p.ph === undefined ? 0.7 : p.ph), rad: p.rad || 0, rate: p.rate || 0, dmg: p.dmg || 0, wall: p.wall || 1 }));
   if (lv.rgates) S.rgates = lv.rgates.map(addRGate);
   S.barrels = (lv.barrels || []).map((b) => ({ t: b.t, z: b.z, x: laneX(b.t, b.z), hp: b.hp || 8, max: b.hp || 8, alive: true, fuse: -1, flash: 0 }));
   // 開局的赤潮：從敵城一路鋪到戰線起點，用抖動過的格點排，才不會有空洞
-  for (let z = lv.front0; z < L - 0.8;) {
+  for (let z = lv.front0; z < S.fz - 0.8;) {
     const d = seaDen(z, lv) * (S.rgates.length ? rgMul(z) : 1), dz = 1.25 / Math.sqrt(d), w = 2 * (rhw(z) - LANE_PAD);
     let c = d * w * dz; c = (c | 0) + (rnd() < c - (c | 0) ? 1 : 0);
     const off = rnd();
@@ -291,6 +296,7 @@ function addGate(g) {
   };
   if (g.add !== undefined) { o.add = g.add; o.add0 = g.add; o.max = g.max === undefined ? Math.max(g.add, 0) + 30 : g.max; o.kind = 3; }
   if (g.alt) { o.alt = g.alt; o.m0 = g.m; }
+  if (g.rush) { o.rush = g.rush; o.rdur = g.dur || 4; o.kind = 4; }      // 疾行門
   if (S.mode) {
     // 行軍關一路上會遇到很多道門，編號循環使用，所以新門上場時要把舊記號洗掉
     o.zp = o.z; const b = S.B, nb = ~o.bit;
@@ -357,7 +363,7 @@ function stepBlue(dt) {
   const gates = S.gates, peds = S.peds, bars = S.barrels, armor = S.armor, rgs = S.rgates, nrg = rgs.length;
   let gz0 = 1e9, gz1 = -1e9;
   for (let k = 0; k < gates.length; k++) { const g = gates[k]; if (g.alive) { if (g.z < gz0) gz0 = g.z; if (g.z > gz1) gz1 = g.z; } }
-  let maxZ = -1e9;
+  let maxZ = -1e9; const wv = S.wind ? S.wind.v : 0;
   for (let i = 0; i < n; i++) {
     if (b.hp[i] <= 0) continue;
     let z = b.z[i], y = b.y[i];
@@ -370,6 +376,7 @@ function stepBlue(dt) {
     const hwE = rhw(z) - LANE_PAD;
     let t = b.t[i], vl = b.vl[i];
     if (vl !== 0) { t += vl * dt / hwE; vl *= POPDAMP; if (vl > -0.15 && vl < 0.15) vl = 0; b.vl[i] = vl; }
+    if (wv !== 0 && z < 30) t += wv * (z < 20 ? 1 : (30 - z) / 10) * dt / hwE;      // 風沙：前庭裡的兵被橫風吹偏
     if (z > minZ - 7) {
       if (((i + fr) & 7) === 0) b.sk[i] = seek(b.x[i], z);
       const sk = b.sk[i];
@@ -392,9 +399,9 @@ function stepBlue(dt) {
     for (let k = 0; k < peds.length; k++) {
       const p = peds[k]; if (p.built) continue;
       const dz = z - p.z, dx = x - p.x;
-      if (dz > -p.r && dz < p.r && dx > -p.r && dx < p.r) {
+      if (dz > -p.r && dz < p.r && (p.edge ? t * p.edge >= p.band : dx > -p.r && dx < p.r)) {
         b.hp[i] = 0; p.got++; p.flash = 1; ev('feed', p, x, z);
-        if (p.got >= p.need) { p.built = true; p.cool = 0.6; ev('built', p); }
+        if (p.got >= p.need) { p.built = true; p.cool = 0.6; if (p.foe) p.foe = false; ev('built', p); }
         break;
       }
     }
@@ -440,7 +447,7 @@ function stepBlue(dt) {
     }
     if (z >= S.fz - 1) {
       b.hp[i] = 0;
-      if (S.fort.alive) fortHit(1, x);
+      if (S.fort.alive) { fortHit(1, x); if (S.wheel) S.wheel.acc += S.wheel.push; }      // 巨輪城：衝進城門的兵把它往後頂
     }
     if (b.fl[i] > 0) b.fl[i]--;
   }
@@ -500,6 +507,7 @@ function stepBigs(dt) {
     if (o.kind === 'hero') { stepHero(o, dt); continue; }
     if (o.kind === 'boss') { stepBoss(o, dt); continue; }
     if (o.kind === 'dragon') { stepDragonBoss(o, dt); continue; }
+    if (o.kind === 'colossus') { stepColossus(o, dt); continue; }
     if (o.hush && o.z < 84) { o.hush = false; ev('big', o); }
     // 蠻兵、巨魔
     const giant = o.kind === 'giant';
@@ -628,7 +636,7 @@ function stepPeds(dt) {
   for (let i = 0; i < ps.length; i++) {
     const p = ps[i];
     if (p.flash > 0) p.flash -= dt * 4; if (p.kick > 0) p.kick -= dt * 5;
-    if (!p.built) continue;
+    if (!p.built) { if (p.foe) stepFoePed(p, dt); continue; }
     if (p.kind === 'sluice') { startFlood(p); p.built = false; p.got = 0; p.need += p.step; continue; }
     p.cool -= dt; if (p.cool > 0) continue;
     if (p.kind === 'ballista') {
@@ -642,7 +650,8 @@ function stepPeds(dt) {
         S.proj.push({ kind: 'bolt', x: p.x, z: p.z + 0.8, vx: Math.sin(a) * 58, vz: Math.cos(a) * 58, pierce: 9, life: 1.6 });
       }
       p.cool = 0.75; ev('bolt', p);
-    } else {
+    } else if (p.kind === 'bigcannon') fireBigCannon(p);
+    else {
       const d = densest(S.R, 14, 6, 84);
       if (!d) { p.cool = 0.4; continue; }
       p.kick = 1; p.aim = Math.atan2(d.x - p.x, d.z - p.z);
@@ -678,10 +687,12 @@ function stepProj(dt) {
         if (p.kind === 'shell') {
           const k = blast(1, p.x, p.z, 3.4, 90, 1, 11); blastBigs(1, p.x, p.z, 3.4, 25);
           ev('boom', p.x, p.z, 3.4, k, 0);
-        } else {
-          // 敵方落石／魔王火球
+        } else if (p.kind === 'bigshell') bigShellLand(p);
+        else if (p.rad > 0) {      // rad = 0 是丟出去之後才失效的砲彈（巨像倒下時還在空中的），落地什麼都不做
+          // 敵方落石／魔王火球／敵軍砲彈（ball 是紅衣大砲，落地還會震傷城牆）
           const k = blast(0, p.x, p.z, p.rad, 70, 1, 10); blastBigs(0, p.x, p.z, p.rad, 1);
-          ev('boom', p.x, p.z, p.rad, k, p.kind === 'fire' ? 2 : 1);
+          if (p.kind === 'ball') wallHit(p.wall || 2, p.x);
+          ev('boom', p.x, p.z, p.rad, k, p.kind === 'fire' ? 2 : p.kind === 'rock' ? 1 : 4);
         }
       }
     }
@@ -723,7 +734,7 @@ function simUlt() {
   if (S.state !== 'play' || u.active || u.charge < u.need) return false;
   if (S.mode && S.front > 96) return false;      // 行軍途中前面沒有敵人，留著不放
   u.active = true; u.t = 0; u.killed = 0; u.charge = 0; u.uses++;
-  u.z0 = Math.max(1.5, S.front - 3); u.z1 = Math.min(S.mode ? L + 8 : L - 1, u.z0 + 32);
+  u.z0 = Math.max(1.5, S.front - 3); u.z1 = Math.min(S.mode ? L + 8 : S.fz - 1, u.z0 + 32);
   if (S.mode && S.boss && S.boss.fixed && u.z1 < S.boss.z + 1) u.z1 = S.boss.z + 1;      // 屠龍戰：狼騎貼到隊頭時放的箭雨也要掃得到赤龍
   for (const b of S.bigs) b.ulted = false;
   ev('ult', u.z0, u.z1);
@@ -739,7 +750,7 @@ function stepUlt(dt) {
     if (z <= zw && z >= u.z0 - 4) { killRed(j, 2, r.x[j], z, 0); u.killed++; frameK++; }
   }
   for (const b of S.bigs) {
-    if (b.team === 1 && !b.dead && !b.ulted && b.z <= zw && b.z >= u.z0 - 4) { b.ulted = true; hurtBig(b, b.maxHp * (b.kind === 'boss' || b.kind === 'dragon' ? 0.06 : 0.3)); }
+    if (b.team === 1 && !b.dead && !b.ulted && b.z <= zw && b.z >= u.z0 - 4) { b.ulted = true; hurtBig(b, b.maxHp * (b.kind === 'boss' || b.kind === 'dragon' || b.kind === 'colossus' ? 0.06 : 0.3)); }
   }
   if (p >= 1 || u.killed >= u.cap) { u.active = false; ev('ultend', u.killed); }
 }
@@ -757,6 +768,7 @@ function runScript(dt) {
       case 'flow': S.flow.rate = S.lv.flow * S.diff.flow * e.mul; if (e.shield !== undefined) S.flow.shield = e.shield; if (e.say) ev('say', e.say, 1); break;
       case 'cata': S.cata.iv = e.iv; S.cata.t = e.iv * 0.5; if (e.say) ev('say', e.say, 1); break;
       case 'say': ev('say', e.say, e.tone || 0); break;
+      case 'twister': addTwister(e); if (e.say) ev('say', e.say, 1); break;
     }
   }
   const f = S.flow, ft = S.fort, sg = S.surge, sdef = S.lv.surge;
@@ -780,7 +792,7 @@ function runScript(dt) {
     if (c.t <= 0) {
       c.t = c.iv * (0.8 + rnd() * 0.4);
       const d = densest(S.B, 12, 8, 86);
-      if (d) throwAt('rock', rr(-6, 6), L + 2, 9, d.x, d.z, 2.7, 1.5);
+      if (d) throwAt('rock', rr(-6, 6), S.fz + 2, 9, d.x, d.z, 2.7, 1.5);
     }
   }
 }
@@ -814,7 +826,7 @@ function calcFrontMarch() {
   const need = Math.min(12, Math.max(4, (S.B.n / 3) | 0));
   let f = L;
   if (tot >= need) { let acc = 0; for (let g = 0; g < GH; g++) { acc += cnt[g]; if (acc >= need) { f = g + GZ0; break; } } }
-  for (const b of S.bigs) if (b.team === 1 && !b.dead && (b.kind !== 'dragon' || b.fixed) && b.z + b.r >= z0 && b.z - b.r < f) f = Math.max(Math.floor(b.z - b.r), q.siege ? 0 : Math.floor(z0));
+  for (const b of S.bigs) if (b.team === 1 && !b.dead && ((b.kind !== 'dragon' && b.kind !== 'colossus') || b.fixed) && b.z + b.r >= z0 && b.z - b.r < f) f = Math.max(Math.floor(b.z - b.r), q.siege ? 0 : Math.floor(z0));
   S.front = f;
 }
 function calcFront() {
@@ -846,7 +858,7 @@ function simStep(dt) {
       if (h.ready > 0) {
         h.ready -= dt;
         if (h.ready <= 0) {
-          const tz = clamp(S.front + 2, 14, L - 9);
+          const tz = clamp(S.front + 2, 14, S.fz - 9);
           const o = addBig({ team: 0, kind: 'hero', x: S.cannonX, x0: S.cannonX, z: CANZ + 1, z0: CANZ + 1, z1: tz, t: laneT(S.cannonX, 12), y: 1, r: 1.5, hp: 1, st: 'fly', dur: 0.8 + tz / 70, life: h.life });
           ev('hero', o); h.t = 0;
         }
@@ -854,10 +866,13 @@ function simStep(dt) {
     }
   } else S.endT += dt;
 
+  if (S.wheel) stepWheel(dt);
   stepGates(dt);
+  if (S.wind) stepWind();
   stepBlue(dt);
   stepRed(dt);
   stepBigs(dt);
+  if (S.twisters.length) stepTwisters(dt);
   stepPeds(dt);
   stepBarrels(dt);
   stepProj(dt);
@@ -869,7 +884,7 @@ function simStep(dt) {
 
   if (S.state === 'won') {
     // 敵城一倒，殘兵從城門往外一波波潰散
-    const zc = L - S.endT * 55; const r = S.R; let k = 0;
+    const zc = S.fz - S.endT * 55; const r = S.R; let k = 0;
     for (let j = 0; j < r.n && k < 70; j++) if (r.hp[j] > 0 && r.z[j] >= zc) { killRed(j, 1, r.x[j], r.z[j] + 2, 9); k++; }
     for (const b of S.bigs) if (b.team === 1 && !b.dead && b.z >= zc) { b.dead = true; ev('bigdie', b); }
   }

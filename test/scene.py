@@ -47,6 +47,33 @@ SCENES = {
   'hz10': (10, 'afk', [('t', 1), ('js', 'for (let i = 0; i < 400; i++) w.addBlue(0, 4, 0, 0, 0, 0)'), ('until', 'w.S.strafes.length && w.S.strafes[0].lit && w.S.strafes[0].zf < 40'), ('shot', 'hz10_a', FULL), ('adv', 0.25), ('shot', 'hz10_b', FULL), ('adv', 0.3), ('shot', 'hz10_c', FULL), ('adv', 1.2), ('shot', 'hz10_d', FULL)]),
   'saw8': (8, 'afk', [('t', 1), ('js', 'S.cannonX = 3'), ('t', 16.5), ('js', 'for (let i = 0; i < 300; i++) w.addBlue(3, 4, 0, 0, 0, 0); S.cannonX = -1'), ('until', 'w.S.saws.length && w.S.saws[0].z < 16'), ('shot', 'saw8_a', FULL), ('until', 'w.S.saws[0].z < 8'), ('shot', 'saw8_b', FULL), ('until', 'w.S.saws[0].z < 3'), ('shot', 'saw8_c', FULL), ('adv', 0.8), ('shot', 'saw8_d', FULL)]),
   'm6b': (6, 'good', [('t', 37), ('shot', 'm6_37', FULL), ('t', 44), ('shot', 'm6_44', FULL), ('t', 50), ('shot', 'm6_50', FULL), ('t', 57), ('shot', 'm6_57', FULL), ('t', 62), ('shot', 'm6_62', FULL), ('until', 'w.S.sq.siege'), ('adv', 0.5), ('shot', 'm6_siege0', FULL), ('adv', 2), ('shot', 'm6_siege1', FULL), ('adv', 2.5), ('shot', 'm6_siege2', FULL), ('until', '!w.S.fort.alive'), ('adv', 0.4), ('shot', 'm6_win', FULL), ('rt', 6000), ('shot', 'm6_result', FULL)]),
+  'l11': (11, 'good', [('t', 3.4), ('shot', 'l11_03', FULL), ('until', 'w.S.marks.length'), ('adv', 0.9), ('shot', 'l11_mark', FULL), ('adv', 0.75), ('shot', 'l11_boom', FULL),
+    ('until', 'w.S.peds[0].built'), ('adv', 0.3), ('shot', 'l11_cap', FULL), ('t', 45), ('shot', 'l11_45', FULL), ('until', 'w.S.peds[3].built || w.S.time > 110'), ('adv', 2), ('shot', 'l11_big', FULL), ('until', 'w.S.proj.some((p) => p.kind === "bigshell")'), ('adv', 0.7), ('shot', 'l11_bigshot', FULL)]),
+  'l13': ('風沙城', 'good', [('t', 3), ('shot', 'l13_03', FULL), ('t', 5.5), ('shot', 'l13_warn', FULL), ('t', 10), ('shot', 'l13_gust', FULL), ('t', 26), ('shot', 'l13_gustL', FULL),
+    ('until', 'w.S.twisters.length && w.S.twisters[0].t > 6'), ('shot', 'l13_tw1', FULL), ('until', '!w.S.twisters.length || w.S.twisters[0].z < 24'), ('shot', 'l13_tw2', FULL)]),
+  'l15': ('巨輪城', 'good', [('t', 2.5), ('shot', 'l15_02', FULL), ('t', 30), ('shot', 'l15_30', FULL), ('js', 'S.fz = 30;'), ('adv', 2.5), ('shot', 'l15_near', FULL), ('until', 'w.S.marks.length'), ('adv', 0.6), ('shot', 'l15_ram', FULL),
+    ('js', 'S.fz = 60; S.fort.hp = 30; S.fort.floor = 30; S.fort.dry = true; for (let j = 0; j < S.R.n; j++) S.R.hp[j] = 0;'), ('until', '!w.S.fort.alive'), ('adv', 1.2), ('shot', 'l15_die', FULL)]),
+  'l12': ('落石峽', 'good', [('t', 3), ('shot', 'l12_03', FULL), ('until', 'w.S.marks.length'), ('adv', 0.6), ('shot', 'l12_vol1', FULL), ('adv', 1.0), ('shot', 'l12_vol2', FULL),
+    ('until', 'w.S.rolls.length && w.S.rolls[0].z < 60'), ('shot', 'l12_roll1', FULL), ('until', '!w.S.rolls.length || w.S.rolls[0].z < 14'), ('shot', 'l12_roll2', FULL),
+    ('until', 'w.S.sq.dist > 350'), ('shot', 'l12_350', FULL), ('until', 'w.S.sq.siege'), ('adv', 2), ('shot', 'l12_siege', FULL)]),
+  'l14': ('冰河', 'good', [('t', 4), ('shot', 'l14_04', FULL), ('until', 'w.S.cracks.length && w.S.cracks[0].z < 30'), ('shot', 'l14_crack', FULL),
+    ('until', 'w.S.barrels.some((o) => o.rw === "wall" && o.z < 40)'), ('shot', 'l14_wall', FULL), ('until', 'w.S.strafes.length && w.S.strafes[0].t > 1'), ('shot', 'l14_aval0', FULL),
+    ('until', 'w.S.strafes.length && w.S.strafes[0].lit'), ('adv', 0.3), ('shot', 'l14_aval1', FULL), ('until', 'w.S.holes.some((h) => h.ice)'), ('adv', 0.1), ('shot', 'l14_hole', FULL)]),
+  'l16': ('帝都決戰', 'good', [('t', 3), ('shot', 'l16_03', FULL), ('until', 'w.S.barrels.some((o) => o.rw === "block" && o.z < 16)'), ('adv', 1.5), ('shot', 'l16_block', FULL), ('adv', 2.5), ('shot', 'l16_block2', FULL),
+    ('until', 'w.S.gates.some((g) => g.rush && g.z < 30)'), ('shot', 'l16_rush', FULL), ('js', 'S.col.w = S.sq.dist - 3'), ('adv', 0.3), ('shot', 'l16_col', FULL),
+    ('until', 'w.S.boss && w.S.boss.fixed'), ('adv', 1), ('shot', 'l16_boss0', FULL), ('until', 'w.S.boss && w.S.boss.arms.length && w.S.boss.arms[0].t > 0.8'), ('shot', 'l16_fist1', FULL),
+    ('until', 'w.S.boss && w.S.boss.arms.length && w.S.boss.arms[0].t > w.S.boss.arms[0].dur - 0.15'), ('shot', 'l16_fist2', FULL), ('adv', 0.25), ('shot', 'l16_slam', FULL),
+    ('js', 'S.boss && (S.boss.hp = S.boss.maxHp * 0.45)'), ('adv', 6), ('shot', 'l16_rage', FULL), ('js', 'S.boss && (S.boss.hp = 30)'), ('until', '!w.S.boss'), ('adv', 0.4), ('shot', 'l16_die', FULL)]),
+  'mix2d': ('奪砲營', 'good', [('t', 30), ('shot', 'x2d_11', FULL)]),
+  'l11b': ('奪砲營', 'good', [('t', 14.5), ('until', 'w.S.proj.some((p) => p.kind === "ball")'), ('adv', 1.2), ('shot', 'l11b_ball', FULL),
+    ('js', 'const p = S.peds[3]; p.built = true; p.foe = false; p.cool = 0.2;'), ('until', 'w.S.proj.some((p) => p.kind === "bigshell")'), ('adv', 0.6), ('shot', 'l11b_shot', FULL), ('adv', 0.85), ('shot', 'l11b_hit', FULL)]),
+  # 滾石從視野最遠處出現；冰封的轟天砲；巨像暴怒後雙拳齊砸橋中央
+  'l12b': ('落石峽', 'good', [('until', 'w.S.rolls.length'), ('adv', 0.1), ('shot', 'l12b_spawn', FULL), ('adv', 3), ('shot', 'l12b_3s', FULL)]),
+  'l14b': ('冰河', 'good', [('until', 'w.S.barrels.some((o) => o.rw === "elite" && o.z < 42)'), ('shot', 'l14b_ice', FULL),
+    ('until', '!w.S.barrels.some((o) => o.rw === "elite" && o.alive) || w.S.sq.dist > 380'), ('adv', 0.15), ('shot', 'l14b_break', FULL)]),
+  'l16d': ('帝都決戰', 'good', [('until', 'w.S.boss && w.S.boss.fixed'), ('js', 'S.boss.hp = S.boss.maxHp * 0.45'),
+    ('until', '!w.S.boss || (w.S.boss.arms.filter((f) => !f.hit).length === 2 && w.S.boss.arms[0].t > 1.0)'), ('shot', 'l16d_warn', FULL),
+    ('until', '!w.S.boss || (w.S.boss.arms.length && w.S.boss.arms[0].hit)'), ('adv', 0.1), ('shot', 'l16d_slam', FULL)]),
 }
 async def main():
     name = sys.argv[1]
@@ -82,7 +109,8 @@ async def main():
             await pg.click('#btnPause'); await pg.wait_for_timeout(400)
             await pg.screenshot(path=str(root / 'shots/m_pause.png'))
             print('console:', msgs[:10]); await b.close(); return
-        await pg.evaluate(f'''() => {{ const w = window.__wj; w.G.freeze = true; w.startLevel({level - 1}); w._bot = w.botFor('{bot}'); }}''')
+        lvexpr = f"w.LEVELS.findIndex((l) => l.name === '{level}')" if isinstance(level, str) else str(level - 1)      # 關卡可以寫第幾關，也可以寫關名
+        await pg.evaluate(f'''() => {{ const w = window.__wj; w.G.freeze = true; w.startLevel({lvexpr}); w._bot = w.botFor('{bot}'); }}''')
         for st in steps:
             if st[0] == 't':
                 await pg.evaluate('(t) => { const w = window.__wj; let guard = 0; while (w.S.time < t && w.S.state === "play" && guard++ < 4000) w.advance(0.1, w._bot); }', st[1])

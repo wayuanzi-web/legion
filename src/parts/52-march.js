@@ -11,17 +11,17 @@ const WPN_RATE = [1, 1.55, 2.2, 3], WPN_DMG = [1, 1, 2, 2];
 const SUNX = new Float32Array(BLUE_CAP), SUNZ = new Float32Array(BLUE_CAP);
 for (let i = 0; i < BLUE_CAP; i++) { const r = Math.sqrt(i + 0.5), a = i * 2.399963229728653; SUNX[i] = r * Math.cos(a); SUNZ[i] = r * Math.sin(a); }
 
-const SAY_ALERT = { pack: 1, brute: 1, giant: 1, hole: 1, saw: 1 };      // 這幾種東西附帶的提示用紅色警告樣式，其餘是一般說明
+const SAY_ALERT = { pack: 1, brute: 1, giant: 1, hole: 1, saw: 1, volley: 1, boulder: 1, block: 1, crack: 1, aval: 1 };      // 這幾種東西附帶的提示用紅色警告樣式，其餘是一般說明
 function marchInit(lv, up) {
   const hw = rhw(0);
   S.mode = 1; S.blueMaxZ = MZ_REAR; S.flow.rate = 0;
-  S.sq = { x: 0, v: 0, vMax: lv.speed || 7.5, dist: 0, hw, a: 1, b: 1, cz: MZ_REAR + 1, kx: 0.34, kz: 0.34, front: MZ_REAR + 2, fireAcc: 0, wpn: 0, siege: false, hold: false, rescue: false, len: lv.len - (lv.boss === 'dragon' ? MZ_BOSS : MZ_STOP), n0: 0, fortN: Math.round((lv.fortN || 0) * S.diff.flow), bossN: lv.boss === 'dragon' ? Math.round((lv.dragonHp || 2400) * S.diff.hp) : 0 };
+  S.sq = { x: 0, v: 0, vx: 0, vMax: lv.speed || 7.5, dist: 0, hw, a: 1, b: 1, cz: MZ_REAR + 1, kx: 0.34, kz: 0.34, front: MZ_REAR + 2, fireAcc: 0, wpn: 0, siege: false, hold: false, rescue: false, len: lv.len - (lv.boss ? MZ_BOSS : MZ_STOP), n0: 0, fortN: Math.round((lv.fortN || 0) * S.diff.flow), bossN: lv.boss ? Math.round((lv.boss === 'dragon' ? lv.dragonHp || 2400 : lv.bossHp || 4000) * S.diff.hp) : 0, rear: MZ_REAR, rushT: 0, rushK: 1 };
   // track 分兩份：會佔位置的東西（進場時擺上去），以及走到定點才觸發的事（提示、赤龍俯衝）
-  S.track = lv.track.filter((e) => e.t !== 'say' && e.t !== 'strafe'); S.ti = 0;
+  S.track = lv.track.filter((e) => e.t !== 'say' && !MARCH_EVT[e.t]); S.ti = 0;
   S.evq = [];
   for (const e of lv.track) {
-    if (e.t === 'strafe') S.evq.push({ d: e.d, e });
-    else if (e.say) S.evq.push({ d: e.d - (e.lead || 62), say: e.say, tone: e.tone !== undefined ? e.tone : SAY_ALERT[e.t] ? 1 : 0 });
+    if (MARCH_EVT[e.t]) S.evq.push({ d: e.d - (EVT_LEAD[e.t] || 0), e });
+    if (e.say) S.evq.push({ d: e.d - (e.lead || 62), say: e.say, tone: e.tone !== undefined ? e.tone : SAY_ALERT[e.t] ? 1 : 0 });
     if (e.gold) S.evq.push({ d: e.d - 80, gold: true });
   }
   S.evq.sort((a, b) => a.d - b.d); S.evi = 0;
@@ -29,6 +29,7 @@ function marchInit(lv, up) {
   S.fort = { hp: 0, max: 1, floor: 0, alive: false, flash: 0, stage: 3, dry: false };
   S.burn.used = true; S.wallMax = S.wallHp = 1;
   const n0 = Math.round((lv.start || 14) * (S.diff.wall > 1 ? 1.25 : S.diff.wall < 1 ? 0.85 : 1) + 3 * up.wall);
+  collapseInit(lv);
   S.sq.n0 = n0; squadLayout(n0);
   for (let i = 0; i < n0; i++) addBlue(SUNX[i] * S.sq.kx, S.sq.cz + SUNZ[i] * S.sq.kz, 0, 0, 0, 0);
   marchSpawn();
@@ -43,11 +44,12 @@ function squadLayout(n) {
   const area = n <= 300 ? 0.36 * Math.max(n, 1) : 108 * Math.pow(n / 300, 0.6);
   const R = Math.sqrt(area / Math.PI), aMin = Math.min(R, Math.max(2.2, R * R / SQ_LEN));
   // 隊伍最長排到 SQ_LEN。前面有橋頭堡或赤龍的時候隊頭不能超過它：長龍照樣那麼窄，只是站得更密
-  const ahead = S.mf ? S.mf.z - 2 : S.boss && S.boss.kind === 'dragon' ? S.boss.z - 6 : 1e9;
-  const bMax = Math.min(SQ_LEN, Math.max(4, (ahead - MZ_REAR) / 2));
+  let ahead = S.mf ? S.mf.z - 2 : S.boss && (S.boss.kind === 'dragon' || S.boss.kind === 'colossus') ? S.boss.z - 6 : 1e9;
+  if (S.blockZ < 1e8) ahead = Math.min(ahead, S.blockZ - 1.6);      // 被拒馬擋住：隊頭不能超過拒馬
+  const bMax = Math.min(SQ_LEN, Math.max(4, (ahead - q.rear) / 2));
   q.R = R; q.aMin = aMin; q.lim = Math.max(0, q.hw - SQ_EDGE - aMin);
   const a = clamp(q.hw - SQ_EDGE - Math.abs(q.x), aMin, R), bl = Math.min(R * R / a, bMax), c = 1 / Math.sqrt(Math.max(n, 1));
-  q.a = a; q.b = bl; q.kx = c * a; q.kz = c * bl; q.cz = MZ_REAR + bl;
+  q.a = a; q.b = bl; q.kx = c * a; q.kz = c * bl; q.cz = q.rear + bl;
 }
 // 隊伍中心放在 x 的話，半寬會是多少（自動玩家估算用）
 function squadHalf(x) { const q = S.sq; return clamp(q.hw - SQ_EDGE - Math.abs(x), q.aMin, q.R); }
@@ -55,8 +57,8 @@ function squadHalf(x) { const q = S.sq; return clamp(q.hw - SQ_EDGE - Math.abs(x
 /* ---------- 路線上的東西進場 ---------- */
 function marchSpawn() {
   const q = S.sq, tr = S.track, eq = S.evq;
-  while (S.ti < tr.length && tr[S.ti].d - q.dist <= (tr[S.ti].t === 'dragon' ? MZ_DRAGON : MZ_SPAWN)) { const e = tr[S.ti++]; marchAdd(e, e.d - q.dist); }
-  while (S.evi < eq.length && eq[S.evi].d <= q.dist) { const o = eq[S.evi++]; if (o.e) dragonStrafe(o.e); else if (o.gold) ev('gold'); else ev('say', o.say, o.tone); }
+  while (S.ti < tr.length && tr[S.ti].d - q.dist <= (tr[S.ti].t === 'dragon' || tr[S.ti].t === 'colossus' ? MZ_DRAGON : MZ_SPAWN)) { const e = tr[S.ti++]; marchAdd(e, e.d - q.dist); }
+  while (S.evi < eq.length && eq[S.evi].d <= q.dist) { const o = eq[S.evi++]; if (o.e) marchEvent(o.e); else if (o.gold) ev('gold'); else ev('say', o.say, o.tone); }
 }
 function addRedM(x, z, kind, mode, spd) {
   const s = S.R; if (s.n >= s.cap) return -1;
@@ -81,13 +83,13 @@ function marchAdd(e, z) {
   const D = S.diff, hwE = S.sq.hw - LANE_PAD;
   switch (e.t) {
     case 'gate': {
-      const g = addGate({ z, x: e.x, w: e.w, m: e.m === undefined ? 1 : e.m, add: e.add, max: e.max, amp: e.amp, per: e.per, ph: e.ph, gold: e.gold, cap: e.cap });
+      const g = addGate({ z, x: e.x, w: e.w, m: e.m === undefined ? 1 : e.m, add: e.add, max: e.max, amp: e.amp, per: e.per, ph: e.ph, gold: e.gold, cap: e.cap, rush: e.rush, dur: e.dur });
       g.row = e.d;
       break;
     }
     case 'barrel': {
       const hp = Math.max(1, Math.round(e.hp * (e.rw && e.rw !== 'tnt' ? D.hp : 1)));
-      S.barrels.push({ t: 0, z, x: e.x, hp, max: hp, alive: true, fuse: -1, flash: 0, rw: e.rw || 'tnt', n: e.n || 0, elite: e.elite, hw: e.rw === 'elite' ? 2.1 : 1.05 });
+      S.barrels.push({ t: 0, z, x: e.x, hp, max: hp, alive: true, fuse: -1, flash: 0, rw: e.rw || 'tnt', n: e.n || 0, elite: e.elite, hw: e.hw || (e.rw === 'elite' ? 2.1 : e.ice ? 1.3 : 1.05), ice: !!e.ice });
       break;
     }
     case 'pack': spawnPack(e, z); break;
@@ -103,6 +105,8 @@ function marchAdd(e, z) {
       break;
     }
     case 'hole': S.holes.push({ x: e.x, w: e.w, z, len: e.len || 5 }); break;
+    case 'crack': S.cracks.push({ x: e.x, w: e.w, z, len: e.len || 6, t: -1 }); break;
+    case 'ice': S.ices.push({ d: e.d, len: e.len }); break;
     case 'saw': S.saws.push({ x0: e.x, x: e.x, z, amp: e.amp || 0, per: e.per || 4, ph: e.ph || 0, r: e.r || 1.25, born: S.time }); break;
     case 'fort': {
       const hp = S.sq.fortN || Math.round(e.n * D.flow);
@@ -112,6 +116,8 @@ function marchAdd(e, z) {
       break;
     }
     case 'dragon': dragonLand(e, z); break;
+    case 'colossus': colossusLand(e, z); break;
+    case 'block': { const hp = Math.max(1, Math.round(e.hp * D.hp)); S.barrels.push({ t: 0, z, x: 0, hp, max: hp, alive: true, fuse: -1, flash: 0, rw: 'block', n: 0, hw: S.sq.hw + 0.3, ice: false }); break; }
   }
 }
 
@@ -126,6 +132,8 @@ function marchScroll(dz) {
   for (let i = hs.length - 1; i >= 0; i--) { hs[i].z -= dz; if (hs[i].z + hs[i].len < MZ_OUT) hs.splice(i, 1); }
   const ss = S.saws;
   for (let i = ss.length - 1; i >= 0; i--) { ss[i].z -= dz; if (ss[i].z < MZ_OUT) ss.splice(i, 1); }
+  for (const o of S.rolls) o.z -= dz;
+  for (const c of S.cracks) c.z -= dz;
   for (const m of S.marks) m.z -= dz;
   for (const p of S.proj) if (p.kind !== 'arrow' && p.kind !== 'bolt') { p.z0 -= dz; p.z1 -= dz; }
   for (const o of S.bigs) if (o.team === 1 && !o.fixed) o.z -= dz;
@@ -180,6 +188,10 @@ function hazards() {
   let k = 0; const see = Math.max(HOLE_SEE, 2 * S.sq.b + 6);      // 隊伍排多長就往前看多遠：隊頭快到缺口了，隊尾也不該晃進那一條
   for (const h of S.holes) if (k < HZ_MAX) { hzA[k] = h.x - h.w / 2; hzB[k] = h.x + h.w / 2; hzLo[k] = h.z - see; hzHi[k] = h.z + h.len; hzBack[k] = 1; k++; }
   for (const f of S.strafes) if (f.lit && k < HZ_MAX) { hzA[k] = f.x - f.w / 2; hzB[k] = f.x + f.w / 2; hzLo[k] = -1e9; hzHi[k] = Math.min(f.z0, f.zf + FIRE_TRAIL); hzBack[k] = 0; k++; }
+  // 正在裂的薄冰：跟缺口一樣，不准走上去
+  for (const c of S.cracks) if (c.t >= 0 && k < HZ_MAX) { hzA[k] = c.x - c.w / 2; hzB[k] = c.x + c.w / 2; hzLo[k] = c.z - 6; hzHi[k] = c.z + c.len; hzBack[k] = 1; k++; }
+  // 滾過來的巨石：快到了的時候，它那一條路不准走進去
+  for (const o of S.rolls) if (!o.dead && k < HZ_MAX) { hzA[k] = o.x - o.r - 0.35; hzB[k] = o.x + o.r + 0.35; hzLo[k] = o.z - 34; hzHi[k] = o.z + o.r; hzBack[k] = 0; k++; }
   return k;
 }
 function stepSquad(dt) {
@@ -187,12 +199,16 @@ function stepSquad(dt) {
   // 手指的位置（S.cannonX）是目標，整團人用有限速度追過去
   squadLayout(n);
   S.cannonX = clamp(S.cannonX, -q.lim, q.lim);
-  { const m = 34 * dt; q.x = clamp(q.x + clamp(S.cannonX - q.x, -m, m), -q.lim, q.lim); }
+  if (S.ices.length && onIce()) {
+    // 冰面：左右移動有慣性，會滑過頭
+    const vd = clamp((S.cannonX - q.x) * 4, -16, 16); q.vx += (vd - q.vx) * Math.min(1, 2.6 * dt);
+    const nx = clamp(q.x + q.vx * dt, -q.lim, q.lim); if (nx !== q.x + q.vx * dt) q.vx = 0; q.x = nx;
+  } else { const m = 34 * dt, x0 = q.x; q.x = clamp(q.x + clamp(S.cannonX - q.x, -m, m), -q.lim, q.lim); q.vx = (q.x - x0) / dt; }
   squadLayout(n);
   const rst = r.start, ritems = r.items, rhp = r.hp, rxx = r.x, rzz = r.z, minZ = S.redMinZ;
   const gates = S.gates, bars = S.barrels, holes = S.holes, saws = S.saws;
   const mx = 22 * dt, mz = 10 * dt, kx = q.kx, kz = q.kz, cx = q.x, cz = q.cz, edge = q.hw - 0.4, nh = hazards();
-  const ns = saws.length, vv = Math.max(2, q.v), now = S.time, sawSee = Math.max(SAW_SEE, 2 * q.b + 6);
+  const ns = saws.length, vv = Math.max(2, q.v), now = S.time, sawSee = Math.max(SAW_SEE, 2 * q.b + 6), zCap = S.blockZ - 0.9;
   let zTop = MZ_REAR;
   for (let i = 0; i < n; i++) {
     if (b.hp[i] <= 0) continue;
@@ -226,6 +242,7 @@ function stepSquad(dt) {
       else if ((x - sx) * dx < 0 && (x - sx > rr || sx - x > rr)) dx = 0;      // 站在刀鋒外圍的餘裕裡：不准再往刀那邊靠
     }
     x += dx; z += dz;
+    if (z > zCap) z = zCap;      // 拒馬是一道牆，擠不過去
     if (x > edge) x = edge; else if (x < -edge) x = -edge;
     b.x[i] = x; b.z[i] = z;
     if (z > zTop) zTop = z;
@@ -234,11 +251,11 @@ function stepSquad(dt) {
       const g = gates[k];
       if (!g.alive || (b.gate[i] & g.bit) || !(zp < g.zp && z >= g.z)) continue;   // 門的平面掃過這個兵
       const dg = x - g.x;
-      if (dg < g.w * 0.5 && dg > -g.w * 0.5) { if (g.add !== undefined) passAdd(i, g); else { pickGate(g); passGate(i, g); } if (b.hp[i] <= 0) break; }
+      if (dg < g.w * 0.5 && dg > -g.w * 0.5) { if (g.rush) passRush(g); else if (g.add !== undefined) passAdd(i, g); else { pickGate(g); passGate(i, g); } if (b.hp[i] <= 0) break; }
     }
     if (b.hp[i] <= 0) continue;
     for (let k = 0; k < bars.length; k++) {
-      const o = bars[k]; if (!o.alive || o.fuse >= 0) continue;
+      const o = bars[k]; if (!o.alive || o.fuse >= 0 || o.rw === 'block') continue;      // 拒馬擋在面前時隊伍已經停下來了，不會有人去撞
       const db = z - o.z, da = x - o.x;
       if (db > -1.1 && db < 1.1 && da > -o.hw - 0.1 && da < o.hw + 0.1) { killBlue(i, 5, o.x, o.z + 0.6, 5); hitBarrel(o, 1); break; }
     }
@@ -292,6 +309,7 @@ function squadFire(dt) {
   if (!tgt) for (const o of S.barrels) if (o.alive && o.z > MZ_REAR && o.z < reach) { tgt = true; break; }
   if (!tgt) for (const g of S.gates) if (g.alive && g.add !== undefined && g.add < g.max && g.z > q.front && g.z < reach) { tgt = true; break; }
   if (!tgt) for (const o of S.bigs) if (o.team === 1 && !o.dead && o.z < reach + 4) { tgt = true; break; }
+  if (!tgt) for (const o of S.rolls) if (!o.dead && o.z < reach + 2) { tgt = true; break; }
   if (!tgt) { q.fireAcc = Math.min(q.fireAcc, 0.9); return; }
   q.fireAcc += arrowRate(n, q.wpn) * (1 + 0.1 * S.up.rate) * dt;
   let fired = 0;
@@ -321,6 +339,7 @@ function stepArrow(p, dt) {
       const da = o.x - p.x, db = o.z - p.z, rr2 = o.r + 0.25;
       if (da * da + db * db < rr2 * rr2) { hurtBig(o, p.dmg); ev('spark', p.x, p.z); return true; }
     }
+    if (S.rolls.length && arrowRoll(p, zp)) return true;
     if (S.fort.alive && p.z >= S.fz - 1.2) { ev('spark', p.x, p.z); return true; }     // 箭射不動城牆
   }
   p.life -= dt;
@@ -380,17 +399,19 @@ function siegeFlow(dt) {
 }
 function marchRescue() {
   const q = S.sq, n = 20 + 6 * S.up.wall;
-  S.strafes.length = 0;
+  S.strafes.length = 0; q.rushT = 0;      // 疾行門的加速不帶給後軍
   // 剛剛害死全隊的缺口或滾刀多半還在腳邊：後軍從沒有危險的那一側進場
   let x = q.x, danger = 0;
   for (const h of S.holes) if (h.z < 26 && h.z + h.len > MZ_OUT) danger += h.x >= 0 ? 1 : -1;
   for (const s of S.saws) if (s.z < 26 && s.z > MZ_OUT) danger += s.x >= 0 ? 1 : -1;
+  for (const o of S.rolls) if (o.z < q.cz + 24) { o.dead = true; ev('rollbreak', o); }      // 後軍進場前把滾到腳邊的巨石擊碎
   squadLayout(n);
   if (danger) x = (danger > 0 ? -1 : 1) * q.lim;
   x = clamp(x, -q.lim, q.lim); q.x = x; S.cannonX = clamp(danger ? x : S.cannonX, -q.lim, q.lim); squadLayout(n);
   blast(1, x, q.cz + 2, 8, 400, 1, 12); blastBigs(1, x, q.cz + 2, 8, 30);
   // 還擋在腳邊的木桶、木籠一併撞開，免得後軍一進場又整隊撞上去
   for (const o of S.barrels) if (o.alive && o.fuse < 0 && o.z < q.cz + 12) { o.alive = false; ev('bhit', o); }
+  if (S.col) { S.col.w = Math.min(S.col.w, q.dist - S.col.lag); q.rear = MZ_REAR; squadLayout(n); }      // 後軍從還沒塌的地方趕到
   for (let i = 0; i < n; i++) addBlue(x + SUNX[i] * q.kx, MZ_OUT + 2 + rnd() * 3, 0, 0, 0, 0);
   ev('rescue', x, q.cz);
 }
@@ -406,6 +427,8 @@ function stepCheer(dt) {
 /* ---------- 每幀 ---------- */
 function stepHazards(dt) {
   for (const s of S.saws) if (s.amp) s.x = s.x0 + s.amp * tri((S.time - s.born) / s.per + s.ph);
+  if (S.rolls.length) stepRolls(dt);
+  if (S.cracks.length) stepCracks(dt);
   stepDragon(dt);
 }
 // 大將集滿了也要等前面真的有一批敵人才出陣：攻城時對城門、赤龍落地後對赤龍、其餘看隊頭前面 42 格內有沒有敵陣
@@ -415,8 +438,12 @@ function heroFoe() {
 }
 function marchStep(dt) {
   const q = S.sq, playing = S.state === 'play', mf = S.mf, b = S.B;
-  // 出發時慢慢加速；接近橋頭堡時減速，到定點停下來攻城
-  let vT = playing && !q.siege && !q.hold ? q.vMax : 0;
+  // 出發時慢慢加速；接近橋頭堡時減速，到定點停下來攻城。疾行門讓全隊加速一陣子；拒馬擋在面前就停下來
+  // 拒馬沒射破就一直擋著（不管它離隊頭多近，都不能被走過去）；煞車距離看速度，疾行門加速中也停得住
+  S.blockZ = 1e9; for (const o of S.barrels) if (o.alive && o.rw === 'block' && o.z > MZ_OUT && o.z < S.blockZ) S.blockZ = o.z;
+  if (q.rushT > 0) q.rushT -= dt;
+  let vT = playing && !q.siege && !q.hold ? q.vMax * (q.rushT > 0 ? q.rushK : 1) : 0;
+  if (S.blockZ - q.front < Math.max(4.4, 2 + q.v * q.v / 28)) vT = 0;
   if (mf && !q.siege) vT = Math.min(vT, Math.max(0, (mf.z - MZ_STOP) * 1.3 + 0.5));
   q.v += clamp(vT - q.v, -14 * dt, 5 * dt);
   marchScroll(q.v * dt);
@@ -456,6 +483,7 @@ function marchStep(dt) {
   } else S.endT += dt;
 
   stepGates(dt);
+  if (S.col) { stepCollapse(dt); q.rear = Math.max(MZ_REAR, collapseZ() + 1.2); }      // 崩塌追到隊尾，整團人往前擠
   if (S.state === 'won') stepCheer(dt);
   else if (q.siege) { if (playing) siegeFlow(dt); stepBlue(dt); q.front = Math.max(MZ_REAR, S.blueMaxZ); } else stepSquad(dt);
   stepRedMarch(dt);
@@ -495,9 +523,9 @@ function marchStep(dt) {
    火線（S.strafes）：先在橋面上亮 warn 秒預告，接著一道火從 z0 掃到橋尾，掃到的兵（敵我都算）當場陣亡。
    行軍途中赤龍會俯衝噴火；走到橋頭後牠停在前面當魔王，要靠箭、大將、箭雨把牠的血打光。 */
 const FIRE_W = 5.4, FIRE_W2 = 9.2, FIRE_SPD = 150, FIRE_TRAIL = 26;      // 火頭後面拖著 FIRE_TRAIL 長的烈焰，這一段都會燒到人
-function addStrafe(x, z0, warn, fly, w0) {
+function addStrafe(x, z0, warn, fly, w0, snow) {
   const w = w0 || FIRE_W, lim = S.sq.hw - w / 2;
-  const f = { x: clamp(x, -lim, lim), w, t: 0, warn, z0, zf: z0, dur: (z0 - MZ_OUT + FIRE_TRAIL + 2) / FIRE_SPD, fly: !!fly, lit: false, burnt: 0 };
+  const f = { x: clamp(x, -lim, lim), w, t: 0, warn, z0, zf: z0, dur: (z0 - MZ_OUT + FIRE_TRAIL + 2) / FIRE_SPD, fly: !!fly, lit: false, burnt: 0, snow: !!snow };
   S.strafes.push(f); ev('strafe', f); return f;
 }
 function dragonStrafe(e) { addStrafe(S.sq.x + (e.off || 0), 150, e.warn || 1.5, true); }

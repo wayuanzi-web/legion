@@ -428,6 +428,86 @@ function artRailPost(c, dk, lt, cap, capDk) {
   rrect(c, 6, 14, 20, 9, 3); fs(c, '#e9dfc8', PAL.ink, 2.5);
   ell(c, 16, 9, 6.5, 7); fs(c, rg(c, 14, 6, 1, 8, [0, cap, 1, capDk]), PAL.ink, 2.2);
 }
+/* ---------- 天下篇：砲台、紅衣大砲 ---------- */
+function artBatBase(c) {
+  // 176×120：砲台的矮牆（沙包圍成一圈），從斜上方看
+  shadow(c, 88, 90, 80, 24);
+  ell(c, 88, 74, 76, 32); fs(c, '#6b5a3e', PAL.ink, 4);
+  ell(c, 88, 64, 76, 32); fs(c, lg(c, 0, 32, 0, 96, [0, '#c9b083', 1, '#8a7148']), PAL.ink, 4);
+  ell(c, 88, 62, 54, 21); fs(c, lg(c, 0, 41, 0, 83, [0, '#4a3d2a', 1, '#6b5a3e']), 'rgba(30,20,10,.7)', 3);
+  c.strokeStyle = 'rgba(60,40,20,.55)'; c.lineWidth = 2.5;
+  for (let k = 0; k < 14; k++) { const a = k / 14 * TAU, x = 88 + Math.cos(a) * 65, y = 64 + Math.sin(a) * 27; c.beginPath(); c.moveTo(x - Math.sin(a) * 6, y + Math.cos(a) * 2); c.lineTo(x + Math.sin(a) * 6, y - Math.cos(a) * 2); c.stroke(); }
+}
+function artBatGun(c) {
+  // 96×128：短砲身（從正上方看，砲口朝上），以中心旋轉
+  ell(c, 48, 86, 30, 24); fs(c, lg(c, 18, 0, 78, 0, [0, '#3a2412', 0.5, '#8a5a2b', 1, '#2c180a']), '#1a0e06', 4);
+  rrect(c, 30, 16, 36, 78, 13); fs(c, lg(c, 30, 0, 66, 0, [0, '#1c1f26', 0.4, '#6b7484', 1, '#14161c']), '#0a0b0e', 4);
+  for (const y of [40, 66]) { rrect(c, 28, y, 40, 8, 3); fs(c, '#2b303b', '#0a0b0e', 2.5); }
+  ell(c, 48, 20, 21, 11); fs(c, '#3a404d', '#0a0b0e', 3.5); ell(c, 48, 20, 12, 6); fs(c, '#050608');
+}
+function artFlag(c, col, lt, dk) {
+  // 48×96：旗桿和三角旗
+  c.strokeStyle = '#3a2412'; c.lineWidth = 4; c.beginPath(); c.moveTo(10, 92); c.lineTo(10, 6); c.stroke();
+  c.beginPath(); c.moveTo(12, 8); c.quadraticCurveTo(30, 12, 44, 22); c.quadraticCurveTo(28, 28, 12, 40); c.closePath(); fs(c, lg(c, 12, 0, 44, 0, [0, lt, 0.5, col, 1, dk]), PAL.ink, 2.5);
+  ell(c, 10, 5, 4, 4); fs(c, PAL.gold, PAL.goldInk, 1.5);
+}
+function artBigCannon(c) {
+  // 224×224：紅衣大砲（從上往下看，砲口朝上），以中心旋轉
+  for (const sd of [-1, 1]) {
+    const x = 112 + sd * 58;
+    rrect(c, x - 13, 112, 26, 84, 11); fs(c, lg(c, x - 13, 0, x + 13, 0, [0, '#4a2c12', 0.5, '#9a6634', 1, '#3a220e']), '#24130a', 4);
+    c.strokeStyle = '#d9b26a'; c.lineWidth = 3; for (let k = 0; k < 5; k++) { c.beginPath(); c.moveTo(x - 10, 122 + k * 16); c.lineTo(x + 10, 122 + k * 16); c.stroke(); }
+  }
+  rrect(c, 66, 128, 92, 64, 12); fs(c, lg(c, 0, 128, 0, 192, [0, '#a8743e', 1, '#5e3a1a']), '#2c180a', 4.5);
+  c.beginPath(); c.moveTo(86, 204); c.lineTo(94, 30); c.quadraticCurveTo(112, 18, 130, 30); c.lineTo(138, 204); c.quadraticCurveTo(112, 220, 86, 204); c.closePath();
+  fs(c, lg(c, 86, 0, 138, 0, [0, '#4a1206', 0.35, '#d0532c', 0.6, '#a83a1c', 1, '#3a0e04']), '#2a0804', 4.5);
+  for (const y of [70, 120, 170]) { c.beginPath(); c.moveTo(90, y); c.quadraticCurveTo(112, y + 8, 134, y); c.lineTo(134, y + 9); c.quadraticCurveTo(112, y + 17, 90, y + 9); c.closePath(); fs(c, lg(c, 90, 0, 134, 0, [0, '#b9790f', 0.4, '#ffe28a', 1, '#a56a0a']), PAL.goldInk, 2.5); }
+  ell(c, 112, 206, 16, 10); fs(c, '#8a2a12', '#2a0804', 3);
+  c.beginPath(); c.ellipse(112, 30, 25, 14, 0, 0, TAU); fs(c, lg(c, 87, 0, 137, 0, [0, '#b9790f', 0.4, '#ffe9a0', 1, '#a56a0a']), PAL.goldInk, 4);
+  c.beginPath(); c.ellipse(112, 30, 15, 8, 0, 0, TAU); fs(c, '#060402', '#2a0804', 2);
+}
+function artWheel(c) {
+  // 96×96：巨輪城的車輪（鐵箍木輪），以中心旋轉
+  c.translate(48, 48);
+  ell(c, 0, 0, 45, 45); fs(c, '#2b303b', '#0a0b0e', 3);
+  ell(c, 0, 0, 38, 38); fs(c, lg(c, -38, 0, 38, 0, [0, '#5c3a1c', 0.5, '#9a6634', 1, '#4a2c12']), '#24130a', 3);
+  ell(c, 0, 0, 30, 30); fs(c, '#3a220e', '#24130a', 2.5);
+  c.strokeStyle = '#a8743e'; c.lineWidth = 7; c.lineCap = 'butt';
+  for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI; c.beginPath(); c.moveTo(Math.cos(a) * -30, Math.sin(a) * -30); c.lineTo(Math.cos(a) * 30, Math.sin(a) * 30); c.stroke(); }
+  c.lineCap = 'round';
+  ell(c, 0, 0, 10, 10); fs(c, rg(c, -3, -3, 1, 11, [0, '#c6ccd8', 1, '#4d5563']), '#14161c', 3);
+  c.fillStyle = '#98a2b3'; for (let k = 0; k < 12; k++) { const a = k / 12 * TAU; ell(c, Math.cos(a) * 41.5, Math.sin(a) * 41.5, 2.6, 2.6); c.fill(); }
+}
+function artBoulder(c) {
+  // 128×128：滾石（以中心旋轉）
+  c.translate(64, 64);
+  c.beginPath(); for (let k = 0; k < 11; k++) { const a = k / 11 * TAU, r = 56 + ((k * 37) % 7) - 3; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath();
+  fs(c, rg(c, -18, -20, 6, 64, [0, '#c9a27a', 0.55, '#8a6a4a', 1, '#4a3424']), '#24160c', 4);
+  c.strokeStyle = 'rgba(40,24,12,.55)'; c.lineWidth = 4;
+  c.beginPath(); c.moveTo(-30, -10); c.lineTo(-6, 4); c.lineTo(10, -22); c.moveTo(-6, 4); c.lineTo(4, 30); c.moveTo(18, 10); c.lineTo(38, 18); c.stroke();
+  c.fillStyle = 'rgba(255,240,210,.35)'; ell(c, -22, -26, 14, 8, -0.6); c.fill();
+}
+function artIceBlock(c) {
+  // 96×96：冰塊（半透明，裡面封著東西的話另外畫在後面）
+  shadow(c, 48, 88, 40, 7);
+  poly(c, [10, 30, 30, 12, 86, 12, 86, 74, 66, 92, 10, 92]); fs(c, 'rgba(190,232,255,.55)', '#3f7aa8', 3.5);
+  poly(c, [10, 30, 30, 12, 86, 12, 66, 30]); fs(c, 'rgba(240,252,255,.75)', '#3f7aa8', 3);
+  poly(c, [66, 30, 86, 12, 86, 74, 66, 92]); fs(c, 'rgba(120,190,235,.55)', '#3f7aa8', 3);
+  c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 4; c.beginPath(); c.moveTo(18, 44); c.lineTo(30, 34); c.moveTo(18, 58); c.lineTo(40, 40); c.stroke();
+  c.strokeStyle = 'rgba(63,122,168,.5)'; c.lineWidth = 2; c.beginPath(); c.moveTo(40, 92); c.lineTo(48, 70); c.lineTo(60, 64); c.stroke();
+}
+function artJuma(c) {
+  // 160×96：拒馬（兩組交叉的削尖木樁，中間一根橫木）
+  shadow(c, 80, 88, 74, 8);
+  c.lineCap = 'round';
+  for (const x of [40, 120]) for (const sd of [-1, 1]) {
+    c.strokeStyle = '#3a2412'; c.lineWidth = 12; c.beginPath(); c.moveTo(x - sd * 30, 86); c.lineTo(x + sd * 26, 14); c.stroke();
+    c.strokeStyle = '#a8743e'; c.lineWidth = 7; c.beginPath(); c.moveTo(x - sd * 30, 86); c.lineTo(x + sd * 26, 14); c.stroke();
+    c.fillStyle = '#e8d2a8'; poly(c, [x + sd * 26 - 5, 18, x + sd * 31, 4, x + sd * 26 + 5, 16]); c.fill();
+  }
+  rrect(c, 6, 46, 148, 14, 6); fs(c, lg(c, 0, 46, 0, 60, [0, '#c8935a', 1, '#6f4520']), '#24130a', 3.5);
+  c.fillStyle = '#5b6372'; for (const x of [40, 120]) { ell(c, x, 53, 6, 6); c.fill(); }
+}
 function artRock(c) { shadow(c, 32, 56, 22, 6); poly(c, [12, 40, 16, 18, 34, 8, 52, 20, 54, 42, 38, 54, 20, 52]); fs(c, lg(c, 0, 8, 0, 54, [0, '#b3b9c4', 1, '#5f6570']), PAL.ink, 3.5); c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(26, 20); c.lineTo(34, 34); c.lineTo(46, 32); c.stroke(); }
 function artShell(c) { ell(c, 24, 24, 15, 15); fs(c, rg(c, 19, 18, 2, 18, [0, '#7b8494', 1, '#1c2029']), '#0a0c10', 3); ell(c, 18, 17, 4, 3); fs(c, 'rgba(255,255,255,.55)'); }
 function artFireball(c) { ell(c, 48, 48, 44, 44); fs(c, rg(c, 48, 48, 4, 44, [0, 'rgba(255,255,220,1)', 0.3, 'rgba(255,190,60,.95)', 0.65, 'rgba(240,70,20,.7)', 1, 'rgba(180,20,10,0)'])); }
@@ -476,7 +556,7 @@ function artCurtain(c) { c.fillStyle = lg(c, 0, 0, 0, 64, [0, 'rgba(255,255,255,
 function artSoldierIcon(c) { c.fillStyle = '#fff'; ell(c, 16, 9, 6.5, 6.5); c.fill(); rrect(c, 8, 15, 16, 15, 6); c.fill(); }
 
 /* ---------- 數字字形 ---------- */
-const GLYPHS = '0123456789×÷+-%,/!K';
+const GLYPHS = '0123456789×÷+-%,/!K»';
 const GL = {};        // 字 → sprite
 let glyphFont = '900 84px "Arial Black","Helvetica Neue","Arial",sans-serif';
 function artGlyphs() {
@@ -530,6 +610,11 @@ function buildAtlas() {
   for (let p = 0; p < 3; p++) { const q = art('bo' + p, 496, 400, 496, 400, (c) => { c.translate(56, 16); artBoss(c, p); }); q.ay = 372 / 400; }
   art('dgH', 200, 224, 200, 224, artDragonHead).ay = 0.6; art('dgB', 128, 128, 128, 128, artDragonBody).ay = 0.5;
   art('ped', 176, 120, 176, 120, artPed); art('ballista', 176, 176, 176, 176, artBallista); art('mortar', 176, 176, 176, 176, artMortar); art('sluice', 176, 176, 176, 176, artSluice);
+  newRow();
+  // 天下篇
+  art('batBase', 176, 120, 176, 120, artBatBase).ay = 0.62; art('batGun', 96, 128, 96, 128, artBatGun); art('bigcan', 224, 224, 224, 224, artBigCannon);
+  art('wheel', 96, 96, 96, 96, artWheel); art('boulder', 128, 128, 128, 128, artBoulder); art('iceblk', 96, 96, 96, 96, artIceBlock); art('jum', 160, 96, 160, 96, artJuma);
+  art('postV', 48, 176, 48, 176, (c) => artPost(c, '#2fbf7a', '#14704a', '#c8ffe0')); art('beamV', 256, 72, 256, 72, (c) => artBeam(c, '#22b06c', '#9bf0c4', '#0e6a40')); art('rpostW', 32, 96, 32, 96, (c) => artRailPost(c, '#3a2410', '#a8743e', '#e8c890', '#8a5a2a')); art('flagR', 48, 96, 48, 96, (c) => artFlag(c, '#e8392f', '#ff8a70', '#a01818')); art('flagB', 48, 96, 48, 96, (c) => artFlag(c, '#2f7bff', '#9fd0ff', '#1b46b8'));
   newRow();
   artGlyphs();
   return cv;

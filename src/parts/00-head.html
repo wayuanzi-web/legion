@@ -23,7 +23,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
 #app { position: relative; height: 100%; display: flex; justify-content: center; overflow: hidden;
   background: radial-gradient(120% 80% at 50% 0%, #2a2146 0%, var(--ink) 70%); }
-#stage { position: relative; height: 100%; width: 100%; overflow: hidden; background: #0d1019; }
+#stage { position: relative; height: 100%; width: 100%; overflow: hidden; background: #0d1019; container-type: inline-size; }
 #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .chamfer { clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut)); }
 
@@ -87,6 +87,14 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
 #say.show { animation: say 2.6s ease both; }
 #say.alert { color: #ffb0a2; box-shadow: inset 0 0 0 2px var(--red); background: rgba(60, 8, 10, .88); }
 @keyframes say { 0% { opacity: 0; transform: translate(-50%, -8px); } 10%, 82% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+/* 風沙關的風向計：左上角，箭頭個數 = 風力，預告時閃爍 */
+#wind { position: absolute; left: 12px; top: 86px; padding: 3px 12px 4px; font-weight: 900; font-size: 15px; letter-spacing: .06em; color: #ffe2a8; background: rgba(60, 34, 12, .78); --cut: 6px;
+  box-shadow: inset 0 0 0 2px rgba(255, 200, 110, .5); white-space: nowrap; transition: opacity .2s; }
+#wind b { color: #fff3d0; margin: 0 6px; }
+#wind i { font-style: normal; color: #ffb347; letter-spacing: -.1em; }
+#wind.calm { opacity: .55; } #wind.calm i { color: #c9a77a; }
+#wind.warn { animation: windwarn .5s steps(2, jump-none) infinite; }
+@keyframes windwarn { from { box-shadow: inset 0 0 0 2px #ff6a40; color: #ffd0b0; } to { box-shadow: inset 0 0 0 2px rgba(255, 200, 110, .5); } }
 #mile { position: absolute; right: 12px; top: 84px; font-family: var(--f-display); font-weight: 900; font-size: 24px; letter-spacing: .12em; color: var(--gold-lt);
   text-shadow: 0 2px 0 #3a2203, 0 0 14px rgba(255, 190, 40, .8); opacity: 0; transform-origin: 100% 50%; }
 #mile.show { animation: mile 1.5s ease both; }
@@ -101,7 +109,7 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
   background: linear-gradient(180deg, rgba(14, 10, 28, .78) 0%, rgba(14, 10, 28, .35) 34%, rgba(14, 10, 28, .55) 62%, rgba(14, 10, 28, .92) 100%); overflow-y: auto; }
 .logo { text-align: center; margin-top: 2vh; }
 .logo .tagline { margin: 0 0 2px; font-size: 13px; letter-spacing: .5em; text-indent: .5em; color: var(--gold-lt); opacity: .9; }
-.logo h1 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(52px, 19vmin, 92px); line-height: 1.05; letter-spacing: .06em; text-indent: .06em;
+.logo h1 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: clamp(52px, 19vmin, 92px); font-size: clamp(40px, min(19vmin, 21cqw), 92px); white-space: nowrap; line-height: 1.05; letter-spacing: .06em; text-indent: .06em;
   background: linear-gradient(180deg, #fff6cf 8%, #ffd04a 46%, #c9820d 82%); -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 3px 0 #3a2203) drop-shadow(0 0 20px rgba(255, 170, 30, .45)); }
 .logo .rule { height: 12px; margin: 4px auto 0; width: min(260px, 70%); position: relative; }
@@ -110,9 +118,19 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
 .screen > * { flex-shrink: 0; }      /* 塞不下就整頁捲動，不要互相壓到 */
 .spacer { flex: 1 1 0; min-height: 8px; }
 .lvls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px 8px; width: 100%; max-width: 420px; }
-.chap { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .3em; color: var(--gold-lt); opacity: .92; margin-top: 2px; }
-.chap::before, .chap::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 201, 60, .55)); }
-.chap::after { transform: scaleX(-1); }
+/* 天下篇一排六關：字和星星縮小一點，窄螢幕才排得下 */
+.lvls.six { gap: 6px; } .lvls.six .lv { min-width: 0; } .lvls.six .lv b { font-size: 22px; } .lvls.six .lv .stars { font-size: 9px; letter-spacing: 0; }
+/* 篇章分頁：一次只顯示一篇的關卡 */
+.chaps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; max-width: 420px; }
+.chaps button { position: relative; min-height: 38px; padding: 4px 2px 5px; font-weight: 900; font-size: 15px; letter-spacing: .16em; text-indent: .16em; color: var(--mute); background: var(--line); --cut: 7px; line-height: 1.15; }
+.chaps button::before { content: ""; position: absolute; inset: 2px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); clip-path: inherit; }
+.chaps button > * { position: relative; }
+.chaps button small { display: block; font-family: var(--f-num); font-weight: 400; font-size: 11px; letter-spacing: .04em; text-indent: 0; color: #8d84b0; }
+.chaps button small em { font-style: normal; color: var(--gold); }
+.chaps button[aria-selected="true"] { color: var(--gold-ink); background: var(--gold); }
+.chaps button[aria-selected="true"]::before { background: linear-gradient(180deg, #ffe07a, #ffb81f); }
+.chaps button[aria-selected="true"] small, .chaps button[aria-selected="true"] small em { color: #6a4a10; }
+.chaps button.locked { color: #6f6796; }
 .lv { position: relative; aspect-ratio: 1 / 1.02; display: grid; grid-template-rows: 1fr auto; place-items: center; padding: 6px 2px 7px; background: var(--line); --cut: 9px; transition: transform .12s ease; }
 .lv::before { content: ""; position: absolute; inset: 2px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); clip-path: inherit; }
 .lv > * { position: relative; }
@@ -210,6 +228,7 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
         <div class="hud-kills"><small>擊殺</small><b id="hudKills">0</b></div>
         <div class="tug" id="tug"><span><small>我軍</small><b id="tugB">0</b></span><div class="track chamfer"><i id="tugBar"></i></div><span><b id="tugR">0</b><small id="tugRl">赤潮</small></span></div>
       </div>
+      <div id="wind" class="chamfer" hidden></div>
       <div id="say" class="chamfer"></div>
       <div id="mile"></div>
       <div id="banner"></div>
@@ -230,6 +249,7 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
         <div class="rule"></div>
       </header>
       <div class="spacer"></div>
+      <div class="chaps" id="chaps" role="tablist" aria-label="選擇篇章"></div>
       <div class="lvls" id="lvls" role="listbox" aria-label="選擇關卡"></div>
       <div class="lvinfo chamfer"><h2 id="liName"></h2><p id="liTip"></p></div>
       <div class="actions">
