@@ -1,7 +1,7 @@
 /* ===== 80-ui: 存檔、主畫面、強化、設定、結算 ===== */
 const $ = (id) => document.getElementById(id);
 const SAVE_KEY = 'wanjun-pozhen-1';
-const SV = { coins: 0, stars: LEVELS.map(() => 0), open: 1, up: { rate: 0, armor: 0, hero: 0, ult: 0, wall: 0 }, sfx: true, mus: true, vib: true, seen: false, seenM: false, ultSeen: false, kills: 0, diff: 1 };
+const SV = { coins: 0, stars: LEVELS.map(() => 0), open: 1, up: { rate: 0, armor: 0, hero: 0, ult: 0, wall: 0 }, sfx: true, mus: true, vib: true, seen: false, seenM: false, ultSeen: false, kills: 0, diff: 1, art: 'toon' };
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
@@ -10,7 +10,7 @@ function loadSave() {
       if (Array.isArray(s.stars)) for (let i = 0; i < LEVELS.length; i++) SV.stars[i] = clamp(+s.stars[i] || 0, 0, 3);
       if (s.up) for (const k in SV.up) SV.up[k] = clamp(+s.up[k] || 0, 0, 5);
       SV.sfx = s.sfx !== false; SV.mus = s.mus !== false; SV.vib = s.vib !== false; SV.seen = !!s.seen; SV.seenM = !!s.seenM; SV.ultSeen = !!s.ultSeen;
-      SV.diff = s.diff === 0 || s.diff === 2 ? s.diff : 1;
+      SV.diff = s.diff === 0 || s.diff === 2 ? s.diff : 1; SV.art = s.art === 'classic' ? 'classic' : 'toon';
       // 舊版只有五關，破完第五關的存檔 open 停在 5；有拿到星的關卡，下一關一定要開
       let top = 0; for (let i = 0; i < LEVELS.length; i++) if (SV.stars[i] > 0) top = i + 1;
       SV.open = clamp(Math.max(SV.open, top + 1), 1, LEVELS.length);
@@ -104,6 +104,7 @@ function toggleSync() {
   $('tSfx').setAttribute('aria-pressed', String(SV.sfx)); $('tMus').setAttribute('aria-pressed', String(SV.mus)); $('tVib').setAttribute('aria-pressed', String(SV.vib));
   AU.sfxOn = SV.sfx; AU.musOn = SV.mus; AU.vibOn = SV.vib; auSet();
   document.querySelectorAll('#diffSeg button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.d === SV.diff)));
+  document.querySelectorAll('#artSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.a === SV.art)));
 }
 function openOpt(paused) {
   $('optTitle').textContent = paused ? '暫停' : '設定';

@@ -14,6 +14,13 @@
   --f-body: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
   --cut: 10px;
 }
+body.toon {
+  --f-display: "Lilita One", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --ink: #1b1340; --panel: #2a1f63; --panel-2: #3a2c86; --line: #6a58c8; --mute: #c4bce8; --cut: 16px;
+}
+body.toon #banner { -webkit-text-stroke: 3px #26142c; paint-order: stroke fill; }
+body.toon .chamfer, body.toon .btn, body.toon .chaps button, body.toon .lv { clip-path: inset(0 round 16px); }
+body.toon .seg button { border-radius: 10px; }
 *, *::before, *::after { box-sizing: border-box; }
 html { height: 100%; overflow: hidden; background: var(--ink); }
 body { height: 100%; }
@@ -203,6 +210,7 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
 .toggle[aria-pressed="true"] i::after { transform: translateX(22px); }
 .seg { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 8px 12px; background: rgba(255, 255, 255, .06); font-weight: 700; letter-spacing: .1em; }
 .seg div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.seg.two div { grid-template-columns: repeat(2, 1fr); }
 .seg button { min-height: 36px; padding: 4px 2px; font-weight: 700; font-size: 14px; letter-spacing: .08em; color: var(--mute); background: #40376a; }
 .seg button[aria-pressed="true"] { color: var(--gold-ink); background: linear-gradient(180deg, #ffe07a, #ffb81f); }
 .textbtn { color: var(--mute); font-size: 13px; letter-spacing: .1em; text-decoration: underline; text-underline-offset: 3px; padding: 8px; justify-self: center; }
@@ -287,6 +295,9 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
         </div>
         <div class="seg" id="diffSeg"><span>難度</span><div>
           <button data-d="0" aria-pressed="false">輕鬆</button><button data-d="1" aria-pressed="true">標準</button><button data-d="2" aria-pressed="false">硬仗</button>
+        </div></div>
+        <div class="seg two" id="artSeg"><span>畫風</span><div>
+          <button data-a="toon" aria-pressed="true">Q版</button><button data-a="classic" aria-pressed="false">經典</button>
         </div></div>
         <div class="stack" id="homeOpts">
           <button class="textbtn" id="btnUnlock">解鎖全部關卡</button>

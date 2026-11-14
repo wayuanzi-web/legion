@@ -7,7 +7,40 @@ const PAL = {
   wood: '#a06d3b', woodLt: '#c8935a', woodDk: '#5c3a1c', ink: '#1a1420'
 };
 const AW = 2048, AH = 2048;
-const AT = { cv: null, c: null, sp: {}, px: 8, py: 8, rowH: 0 };
+const AT = { cv: null, c: null, sp: {}, px: 8, py: 8, rowH: 0, toonOff: false };
+// 畫風：'toon' = Q版卡通（粗黑描邊、高飽和、大頭兵），'classic' = 原本的畫風
+let ART_STYLE = 'toon';
+const TOON_SKIP = new Set(['soft', 'puff', 'star', 'streak', 'dot', 'white', 'curtain', 'icon', 'ring', 'ring2', 'disc', 'fire', 'slash', 'arrow', 'bolt', 'hb', 'hr']);
+const TOON_INK = [38, 20, 44];
+// Q版後製：把圖的顏色調鮮豔，再沿著輪廓描一圈粗黑邊
+function toonPass(x, y, w, h, r) {
+  const c = AT.c, im = c.getImageData(x, y, w, h), d = im.data, n = w * h;
+  const m = new Uint8Array(n);
+  for (let i = 0, j = 0; i < n; i++, j += 4) {
+    const a = d[j + 3]; if (a > 150) m[i] = 1;
+    if (a > 8) {
+      const R = d[j], G = d[j + 1], B = d[j + 2], l = 0.3 * R + 0.59 * G + 0.11 * B;
+      d[j] = Math.min(255, (l + (R - l) * 1.4) * 1.07 + 6); d[j + 1] = Math.min(255, (l + (G - l) * 1.4) * 1.07 + 6); d[j + 2] = Math.min(255, (l + (B - l) * 1.4) * 1.07 + 6);
+    }
+  }
+  // 輪廓往外擴 r 格（先橫後直），再多擴 1 格當柔邊
+  const dil = (src, rad) => {
+    const t = new Uint8Array(n), o = new Uint8Array(n);
+    for (let yy = 0; yy < h; yy++) { let cnt = 0; const row = yy * w;
+      for (let xx = -rad; xx < w; xx++) { const a = xx + rad; if (a < w) cnt += src[row + a]; const b = xx - rad - 1; if (b >= 0) cnt -= src[row + b]; if (xx >= 0) t[row + xx] = cnt > 0 ? 1 : 0; } }
+    for (let xx = 0; xx < w; xx++) { let cnt = 0;
+      for (let yy = -rad; yy < h; yy++) { const a = yy + rad; if (a < h) cnt += t[a * w + xx]; const b = yy - rad - 1; if (b >= 0) cnt -= t[b * w + xx]; if (yy >= 0) o[yy * w + xx] = cnt > 0 ? 1 : 0; } }
+    return o;
+  };
+  const d1 = dil(m, r), d2 = dil(d1, 1);
+  for (let i = 0, j = 0; i < n; i++, j += 4) {
+    if (m[i]) continue;
+    const k = d1[i] ? 1 : d2[i] ? 0.45 : 0; if (!k) continue;
+    const a0 = d[j + 3] / 255, a = k + a0 * (1 - k);
+    d[j] = (TOON_INK[0] * k + d[j] * a0 * (1 - k)) / a; d[j + 1] = (TOON_INK[1] * k + d[j + 1] * a0 * (1 - k)) / a; d[j + 2] = (TOON_INK[2] * k + d[j + 2] * a0 * (1 - k)) / a; d[j + 3] = a * 255;
+  }
+  c.putImageData(im, x, y);
+}
 
 function rrect(c, x, y, w, h, r) {
   c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
@@ -27,6 +60,7 @@ function art(name, w, h, dw, dh, fn) {
   const c = A.c; c.save(); c.translate(x, y); c.beginPath(); c.rect(0, 0, w, h); c.clip(); c.scale(w / dw, h / dh);
   c.lineJoin = 'round'; c.lineCap = 'round';
   fn(c, dw, dh); c.restore();
+  if (ART_STYLE === 'toon' && !AT.toonOff && !TOON_SKIP.has(name)) toonPass(x, y, w, h, Math.max(2, Math.min(6, Math.round(Math.min(w, h) / 22))));
   const s = { x, y, w, h, u0: x / AW, v0: y / AH, u1: (x + w) / AW, v1: (y + h) / AH, ax: 0.5, ay: 1 };
   A.sp[name] = s; return s;
 }
@@ -80,6 +114,68 @@ function artRed(c, f) {
   ell(c, 19.5, 37 + sw, 4.5, 5); fs(c, '#f04a3a', PAL.redInk, 1.8);
   ell(c, 44.8, 37 - sw, 4.5, 5); fs(c, '#f04a3a', PAL.redInk, 1.8);
   redHead(c, 32, 19, 11, rg(c, 28, 14, 1, 15, [0, '#ff8f72', 1, '#dd2e26']), PAL.redInk, 1);
+  c.restore();
+}
+/* ---------- Q版大頭兵 ---------- */
+function toonLegs(c, f, col) {
+  const ll = f === 0 ? 5 : f === 2 ? 8 : 6.5, rl = f === 0 ? 8 : f === 2 ? 5 : 6.5;
+  c.fillStyle = col; rrect(c, 25, 47, 6, ll, 3); c.fill(); rrect(c, 33, 47, 6, rl, 3); c.fill();
+}
+function toonEyes(c, x, y, r, mad) {
+  for (const sd of [-1, 1]) {
+    ell(c, x + sd * r * 0.38, y, r * 0.2, r * 0.27); c.fillStyle = '#1a1020'; c.fill();
+    ell(c, x + sd * r * 0.38 - r * 0.06, y - r * 0.1, r * 0.08, r * 0.09); c.fillStyle = '#fff'; c.fill();
+    if (mad) { c.strokeStyle = '#1a1020'; c.lineWidth = r * 0.13; c.beginPath(); c.moveTo(x + sd * r * 0.62, y - r * 0.42); c.lineTo(x + sd * r * 0.14, y - r * 0.22); c.stroke(); }
+  }
+}
+function toonBlue(c, f) {
+  const bob = (f & 1) ? -1.4 : 0, sw = f === 0 ? 1.6 : f === 2 ? -1.6 : 0;
+  shadow(c, 32, 57.5, 12, 4);
+  toonLegs(c, f, '#1d3fa8');
+  c.save(); c.translate(0, bob);
+  c.strokeStyle = '#8a5a2b'; c.lineWidth = 2.6; c.beginPath(); c.moveTo(47, 49); c.lineTo(49, 20); c.stroke();
+  poly(c, [49.2, 11, 52.6, 21, 45.8, 21]); fs(c, '#eef4ff', '#26142c', 1.7);
+  rrect(c, 22, 35, 20, 15, 7); fs(c, '#2f7dff', '#26142c', 1.7);
+  ell(c, 32, 42, 3.4, 3.4); fs(c, '#ffd23f', '#26142c', 1.7);
+  ell(c, 21, 42 + sw, 4, 4); fs(c, '#ffd9b0', '#26142c', 1.7); ell(c, 44, 42 - sw, 4, 4); fs(c, '#ffd9b0', '#26142c', 1.7);
+  // 大頭：膚色臉＋藍色頭盔
+  ell(c, 32, 22, 14.5, 14); fs(c, '#ffd9b0', '#26142c', 1.7);
+  c.beginPath(); c.arc(32, 21, 15.2, Math.PI * 1.02, Math.PI * 1.98); c.lineTo(47, 19); c.lineTo(17, 19); c.closePath(); fs(c, lg(c, 0, 6, 0, 20, [0, '#6fb4ff', 1, '#2f7dff']), '#26142c', 1.7);
+  rrect(c, 15.5, 17.5, 33, 4.6, 2.3); fs(c, '#ffd23f', '#26142c', 1.7);
+  ell(c, 32 + sw * 0.4, 4.8, 3.4, 4.6); fs(c, '#ff5a5a', '#26142c', 1.7);
+  toonEyes(c, 32, 27, 14, false);
+  c.fillStyle = 'rgba(255,110,130,.55)'; ell(c, 22.5, 31.5, 3, 2); c.fill(); ell(c, 41.5, 31.5, 3, 2); c.fill();
+  c.strokeStyle = '#7a3a2a'; c.lineWidth = 1.5; c.beginPath(); c.arc(32, 31.5, 2.6, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke();
+  c.restore();
+}
+function toonRed(c, f) {
+  const bob = (f & 1) ? -1.4 : 0, sw = f === 0 ? 1.6 : f === 2 ? -1.6 : 0;
+  shadow(c, 32, 57.5, 12, 4);
+  toonLegs(c, f, '#7a1018');
+  c.save(); c.translate(0, bob);
+  c.save(); c.translate(46, 42 - sw); c.rotate(0.3); poly(c, [-2, 3, -2.4, -15, 1.6, -20, 4.2, -14, 2.2, 3]); fs(c, '#f2f6fb', '#26142c', 1.7); c.restore();
+  rrect(c, 22, 35, 20, 15, 7); fs(c, '#e8322b', '#26142c', 1.7);
+  c.fillStyle = '#5a0c12'; c.fillRect(22.5, 42, 19, 3);
+  ell(c, 21, 42 + sw, 4, 4); fs(c, '#ff6a4a', '#26142c', 1.7); ell(c, 44, 42 - sw, 4, 4); fs(c, '#ff6a4a', '#26142c', 1.7);
+  // 小惡鬼的大頭：紅臉、白角、怒眉、尖牙
+  for (const sd of [-1, 1]) { poly(c, [32 + sd * 9, 12, 32 + sd * 17, 0, 32 + sd * 14, 14]); fs(c, '#fff3d6', '#26142c', 1.7); }
+  ell(c, 32, 23, 14.5, 13.5); fs(c, rg(c, 27, 17, 2, 17, [0, '#ff8a6a', 1, '#e02a24']), '#26142c', 1.7);
+  toonEyes(c, 32, 23.5, 14, true);
+  c.fillStyle = '#5a0c12'; rrect(c, 26, 29.5, 12, 5, 2.5); c.fill();
+  c.fillStyle = '#fff'; poly(c, [27.5, 29.5, 30, 29.5, 28.7, 32.6]); c.fill(); poly(c, [34, 29.5, 36.5, 29.5, 35.3, 32.6]); c.fill();
+  c.restore();
+}
+function toonShield(c, f) {
+  const bob = (f & 1) ? -1.2 : 0;
+  shadow(c, 32, 57.5, 13.5, 4.5);
+  toonLegs(c, f, '#7a1018');
+  c.save(); c.translate(0, bob);
+  ell(c, 32, 22, 14, 13); fs(c, '#e02a24', '#26142c', 1.7);
+  c.beginPath(); c.arc(32, 21, 14.8, Math.PI * 1.0, Math.PI * 2.0); c.lineTo(47, 20); c.lineTo(17, 20); c.closePath(); fs(c, lg(c, 0, 6, 0, 20, [0, '#d8deea', 1, '#7e8899']), '#26142c', 1.7);
+  toonEyes(c, 32, 25, 13, true);
+  c.beginPath(); c.moveTo(15, 33); c.lineTo(49, 33); c.lineTo(49, 44); c.quadraticCurveTo(48, 54, 32, 57); c.quadraticCurveTo(16, 54, 15, 44); c.closePath();
+  fs(c, lg(c, 15, 0, 49, 0, [0, '#9aa6b8', 0.5, '#d4dbe6', 1, '#7e8899']), '#26142c', 1.7);
+  ell(c, 32, 43, 5, 5); fs(c, '#ffd23f', '#26142c', 1.7);
   c.restore();
 }
 function artShield(c, f) {
@@ -653,11 +749,12 @@ function artGlyphs() {
 
 function buildAtlas() {
   const cv = document.createElement('canvas'); cv.width = AW; cv.height = AH;
-  AT.cv = cv; AT.c = cv.getContext('2d'); AT.px = 8; AT.py = 8; AT.rowH = 0; AT.sp = {};
-  for (let f = 0; f < 4; f++) art('b' + f, 64, 64, 64, 64, (c) => artBlue(c, f));
-  for (let f = 0; f < 4; f++) art('r' + f, 64, 64, 64, 64, (c) => artRed(c, f));
+  AT.cv = cv; AT.c = cv.getContext('2d', { willReadFrequently: true }); AT.px = 8; AT.py = 8; AT.rowH = 0; AT.sp = {};
+  const toon = ART_STYLE === 'toon';
+  for (let f = 0; f < 4; f++) art('b' + f, 64, 64, 64, 64, (c) => (toon ? toonBlue : artBlue)(c, f));
+  for (let f = 0; f < 4; f++) art('r' + f, 64, 64, 64, 64, (c) => (toon ? toonRed : artRed)(c, f));
   for (let f = 0; f < 4; f++) art('w' + f, 64, 64, 64, 64, (c) => artWolf(c, f));
-  for (let f = 0; f < 4; f++) art('s' + f, 64, 64, 64, 64, (c) => artShield(c, f));
+  for (let f = 0; f < 4; f++) art('s' + f, 64, 64, 64, 64, (c) => (toon ? toonShield : artShield)(c, f));
   art('soft', 64, 64, 64, 64, artSoft); art('puff', 64, 64, 64, 64, artPuff); art('star', 64, 64, 64, 64, artStar);
   art('streak', 16, 64, 16, 64, artStreak); art('dot', 32, 32, 32, 32, artDot);
   art('hb', 32, 32, 32, 32, (c) => artHelm(c, true)); art('hr', 32, 32, 32, 32, (c) => artHelm(c, false));
@@ -695,6 +792,6 @@ function buildAtlas() {
   art('winch', 128, 112, 128, 112, artWinch).ay = 0.92; art('rod', 80, 224, 80, 224, artRod).ay = 0.97; art('tower', 160, 232, 160, 232, artTower).ay = 0.96; art('cart', 224, 160, 224, 160, artCart).ay = 0.94;
   art('hyH', 128, 128, 128, 128, artHydraHead).ay = 0.5; art('hyN', 64, 64, 64, 64, artHydraNeck).ay = 0.5; art('hyB', 288, 192, 288, 192, artHydraBody).ay = 0.92;
   newRow();
-  artGlyphs();
+  AT.toonOff = true; artGlyphs(); AT.toonOff = false;
   return cv;
 }

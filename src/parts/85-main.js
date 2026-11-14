@@ -18,10 +18,27 @@ function layout() {
   if (W !== V.W || H !== V.H) { setView(W, H, W / sw); glResize(W, H); if (S.lv) rebuildTerrain(); }
 }
 const terrCache = { key: '', a: null, b: null };
+// Q版：地形底圖調得更鮮豔、更亮
+function toonGrade(cv) {
+  if (ART_STYLE !== 'toon' || !cv || !cv.getContext) return cv;
+  try {
+    const c = cv.getContext('2d'), im = c.getImageData(0, 0, cv.width, cv.height), d = im.data;
+    for (let j = 0; j < d.length; j += 4) {
+      const R = d[j], G = d[j + 1], B = d[j + 2], l = 0.3 * R + 0.59 * G + 0.11 * B;
+      d[j] = (l + (R - l) * 1.5) * 1.02; d[j + 1] = (l + (G - l) * 1.5) * 1.02; d[j + 2] = (l + (B - l) * 1.5) * 1.02;
+    }
+    c.putImageData(im, 0, 0);
+  } catch (e) { /* 讀不到像素就照原樣 */ }
+  return cv;
+}
+function setArtStyle(a) {
+  ART_STYLE = a === 'classic' ? 'classic' : 'toon'; document.body.classList.toggle('toon', ART_STYLE === 'toon');
+  buildAtlas(); glSetAtlas(AT.cv); renderInit(); terrCache.key = ''; if (S.lv) rebuildTerrain();
+}
 function rebuildTerrain() {
   if (V.W < 2 || V.H < 2) return;
   const key = S.idx + '|' + V.W + '|' + V.H;
-  if (terrCache.key !== key) { terrCache.key = key; terrCache.a = renderTerrain(S.lv, false); terrCache.b = renderTerrain(S.lv, true); }
+  if (terrCache.key !== key) { terrCache.key = key; terrCache.a = toonGrade(renderTerrain(S.lv, false)); terrCache.b = toonGrade(renderTerrain(S.lv, true)); }
   glSetBg(terrCache.a, terrCache.b);
 }
 
@@ -214,6 +231,7 @@ function bindInput() {
   click('tMus', () => { SV.mus = !SV.mus; toggleSync(); save(); sfx('click'); });
   click('tVib', () => { SV.vib = !SV.vib; toggleSync(); save(); vibrate(30); sfx('click'); });
   document.querySelectorAll('#diffSeg button').forEach((b) => b.addEventListener('click', () => { auInit(); SV.diff = +b.dataset.d; toggleSync(); save(); sfx('click'); }));
+  document.querySelectorAll('#artSeg button').forEach((b) => b.addEventListener('click', () => { auInit(); if (SV.art === b.dataset.a) return; SV.art = b.dataset.a; toggleSync(); save(); sfx('click'); setArtStyle(SV.art); }));
   click('btnUnlock', () => { SV.open = LEVELS.length; save(); sfx('buy'); homeRender(); $('opt').hidden = true; });
   click('btnWipe', () => {
     if (!UI.wipeArm) { UI.wipeArm = 1; $('btnWipe').textContent = '再按一次，確定清除'; sfx('deny'); return; }
@@ -224,7 +242,7 @@ function bindInput() {
 }
 
 function boot() {
-  loadSave(); toggleSync();
+  loadSave(); toggleSync(); ART_STYLE = SV.art; document.body.classList.toggle('toon', ART_STYLE === 'toon');
   UI.sel = clamp(SV.open - 1, 0, LEVELS.length - 1);
   const cv = $('cv');
   const force2d = /(^|[#&])2d\b/.test(location.hash);
