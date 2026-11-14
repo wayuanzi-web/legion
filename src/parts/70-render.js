@@ -86,9 +86,25 @@ function drawBattery(p, x, y, s) {
     text(str, x + th * 0.3, ty, th, rgba(255, 240, 170, 255), 0);
   }
 }
+function drawWildPed(p, x, y, s) {
+  const A = AT.sp, rod = p.kind === 'rod', ts = rod ? A.rod : A.winch, w = (rod ? 2.4 : 3.8) * s;
+  spr(A.ped, x, y + 1.25 * s, 4.3 * s, WHITE, p.flash > 0 ? ((p.flash * 150) << 8) : 0);
+  if (!p.built) {
+    const bob = Math.sin(S.time * 3) * 0.12 * s;
+    spr(ts, x, y + 0.5 * s, w, colA(WHITE, 0.45 + 0.35 * (p.got / p.need)), 0);
+    const th = 1.5 * s, str = String(p.need - p.got), tw = textW(str, th), ty = y - (rod ? 8 : 4.9) * s + bob;
+    sprWH(A.icon, x - tw / 2 - th * 0.75, ty + th * 0.14, th * 0.72, th * 0.72, WHITE, 0);
+    text(str, x + th * 0.3, ty, th, rgba(255, 240, 170, 255), 0);
+  } else {
+    spr(ts, x, y + 0.5 * s, w, WHITE, 0);
+    spr(A.soft, x, y - (rod ? 6.6 : 2) * s, (rod ? 4 : 3) * s, rod ? rgba(190, 220, 255, 120 + 80 * Math.sin(S.time * 7)) : rgba(255, 215, 100, 80), EX_ADD);
+    spr(A.flagB, x + 1.9 * s, y + 0.2 * s, 1.3 * s, WHITE, 0);
+  }
+}
 function drawPed(p) {
   const A = AT.sp; P(p.x, p.z); const s = PS, x = PX, y = PY;
   if (p.kind === 'battery' || p.kind === 'bigcannon') { drawBattery(p, x, y, s); return; }
+  if (p.kind === 'winch' || p.kind === 'rod') { drawWildPed(p, x, y, s); return; }
   const ts = p.kind === 'ballista' ? A.ballista : p.kind === 'sluice' ? A.sluice : A.mortar;
   if (p.escort) {      // 行軍關跟著部隊走的機關車
     const k = Math.max(0, p.kick), w = 3.5 * s;
@@ -133,6 +149,15 @@ function drawBarrel(q) {
     const th = Math.max(1.2 * s, 11 * V.u); text(String(q.hp), x, y - h * 0.62 - th * 0.5, th, WHITE, 0);
     return;
   }
+  if (q.rw === 'tower') {
+    const fl = q.flash > 0 ? (150 << 8) : 0, x = PX, y = PY, k = Math.max(0, q.kick || 0);
+    spr(A.soft, x, y + 0.6 * s, 5.4 * s, rgba(0, 0, 20, 110), 0);
+    spr(A.tower, x, y + 0.5 * s, 4.8 * s * (1 + k * 0.03), WHITE, fl);
+    if (q.cd < 0.8 && q.z <= 104) spr(A.soft, x, y - 5.4 * s, 4 * s, rgba(255, 70, 40, 160 * (1 - q.cd / 0.8)), EX_ADD);
+    hpBar(x, y - 7.6 * s, 3.4 * s, 0.3 * s, q.hp / q.max, rgba(255, 80, 60, 255));
+    const th = Math.max(1.3 * s, 12 * V.u); text(String(q.hp), x, y - 7.8 * s - th * 1.05, th, rgba(255, 225, 120, 255), 0);
+    return;
+  }
   if (q.rw && q.rw !== 'tnt') {
     const fl = q.flash > 0 ? (150 << 8) : 0, bob = Math.sin(S.time * 3 + q.x) * 0.1 * s, x = PX, y = PY;
     if (q.rw === 'elite') {
@@ -150,8 +175,10 @@ function drawBarrel(q) {
       for (let i = 0; i < k; i++) spr(A.b0, x + (i - (k - 1) / 2) * 0.8 * s, y - 2.25 * s + bob + (i === 1 ? 0.2 * s : 0), 1.7 * s, WHITE, 0);
       const th = Math.max(0.95 * s, 9 * V.u); text('+' + q.n, x, y - 4.1 * s + bob - th, th, rgba(150, 215, 255, 255), 0);
     } else {
-      spr(A.soft, x, y - 2.6 * s, 4.6 * s, rgba(90, 170, 255, 110 + 50 * Math.sin(S.time * 5)), EX_ADD);
-      spr(A.bowI, x, y - 2.1 * s + bob, 2.5 * s, WHITE, 0);
+      const rear = q.rw === 'rear';
+      spr(A.soft, x, y - 2.6 * s, 4.6 * s, rear ? rgba(255, 150, 60, 120 + 50 * Math.sin(S.time * 5)) : rgba(90, 170, 255, 110 + 50 * Math.sin(S.time * 5)), EX_ADD);
+      if (rear) sprRot(A.bowI, x, y - 3.3 * s + bob, 2.5 * s, 2.5 * s * A.bowI.h / A.bowI.w, Math.PI, rgba(255, 210, 150, 255), 0);
+      else spr(A.bowI, x, y - 2.1 * s + bob, 2.5 * s, WHITE, 0);
     }
     const th = Math.max(1.2 * s, 11 * V.u); text(String(q.hp), x, y - 0.5 * s - th, th, WHITE, 0);
     return;
@@ -185,6 +212,14 @@ function drawBig(o) {
   const A = AT.sp, ky = V.ky; P(o.x, o.z); const s = PS, x = PX, y = PY;
   if (o.kind === 'dragon') { drawDragonAt(o.x, o.z, 4.6, 15, 1, o.flash > 0 ? ((Math.min(1, o.flash / 0.12) * 50) | 0) << 8 : 0, o.rage); return; }
   if (o.kind === 'colossus') { drawColossus(o); return; }
+  if (o.kind === 'hydra') { drawHydra(o); return; }
+  if (o.kind === 'cart') {
+    const fl2 = o.flash > 0 ? ((Math.min(1, o.flash / 0.12) * 80) | 0) << 8 : 0, bob = Math.abs(Math.sin(o.anim * 4)) * 0.12 * s;
+    spr(A.soft, x, y + 0.5 * s, 6.4 * s, rgba(0, 0, 20, 110), 0);
+    spr(A.cart, x, y + 0.4 * s - bob, 5.6 * s, WHITE, fl2);
+    hpBar(x, y - 4.6 * s, 3.8 * s, 0.32 * s, o.hp / o.maxHp, rgba(255, 80, 60, 255));
+    return;
+  }
   const fl = o.flash > 0 ? ((Math.min(1, o.flash / 0.12) * (o.kind === 'boss' ? 45 : 80)) | 0) << 8 : 0;
   if (o.kind === 'hero') {
     const sp = A['he' + (((o.anim * 7) | 0) & 1)], w = 5.6 * s;
@@ -517,6 +552,98 @@ function drawParticles(flat) {
   }
 }
 
+/* ---------- 無雙篇 ---------- */
+// 千斤閘：兩根石柱、一道橫梁，鐵柵 h = 1 時收在上面、0 時落到地上
+function drawPortc(p) {
+  const hw = rhw(p.z) + 0.4, cx = rcx(p.z);
+  P(cx - hw, p.z); const xl = PX, y = PY, s = PS; P(cx + hw, p.z); const xr = PX;
+  const H = 5.6 * s, top = y - H, sh = p.shaking ? Math.sin(FX.time * 70) * 0.12 * s : 0;
+  spr(AT.sp.soft, (xl + xr) / 2, y + 0.4 * s, (xr - xl) * 1.05, rgba(0, 0, 20, 70), 0);
+  for (const x of [xl, xr]) { rect(x - 0.75 * s, top - 0.2 * s, 1.5 * s, H + 0.4 * s, rgba(78, 70, 62, 255)); rect(x - 0.75 * s, top - 0.2 * s, 0.45 * s, H + 0.4 * s, rgba(120, 108, 94, 255)); }
+  const gb = y - p.h * (H - 0.9 * s) + sh, gt = top + 0.5 * s;
+  if (gb > gt + 0.1 * s) {
+    const col = p.jam ? rgba(120, 112, 96, 255) : p.shaking ? rgba(205, 85, 62, 255) : rgba(46, 50, 60, 255), hi = p.shaking ? rgba(255, 150, 120, 255) : rgba(110, 118, 132, 255);
+    const n = Math.max(7, ((xr - xl) / (1.05 * s)) | 0), dx = (xr - xl) / n;
+    for (let k = 0; k < n; k++) { const x = xl + (k + 0.5) * dx; rect(x - 0.17 * s, gt, 0.34 * s, gb - gt, col); rect(x - 0.17 * s, gt, 0.1 * s, gb - gt, hi); quad4(x - 0.22 * s, gb - 0.05 * s, x + 0.22 * s, gb - 0.05 * s, x, gb + 0.55 * s, x, gb + 0.55 * s, col, 0); }
+    for (let r = 1; r <= 3; r++) { const yy = gb - r * (H - 0.9 * s) / 3.6; if (yy > gt) rect(xl, yy, xr - xl, 0.26 * s, col); }
+  }
+  rect(xl - 1.0 * s, top - 1.0 * s, xr - xl + 2.0 * s, 1.2 * s, rgba(96, 80, 64, 255)); rect(xl - 1.0 * s, top - 1.0 * s, xr - xl + 2.0 * s, 0.35 * s, rgba(150, 128, 100, 255));
+  if (p.jam) { const A = AT.sp, m = (xl + xr) / 2; spr(A.soft, m, top + 0.4 * s, 5 * s, rgba(255, 215, 100, 90 + 40 * Math.sin(FX.time * 4)), EX_ADD); spr(A.winch, m, top + 0.9 * s, 2.6 * s, WHITE, 0); }
+  else if (p.shaking) spr(AT.sp.soft, (xl + xr) / 2, gb, (xr - xl) * 0.9, rgba(255, 60, 30, 70 + 50 * Math.sin(FX.time * 20)), EX_ADD);
+}
+// 傳送陣：地上一圈會轉的光，藍色是我軍的、紫紅色是赤潮的
+function drawPortalGround(p) {
+  const A = AT.sp; if (!p.alive && p.gone > 0.8) return;
+  const blue = p.team === 0, fade = p.alive ? (p.open ? 1 : 0.3 + 0.15 * Math.sin(FX.time * 6)) : 1 - p.gone / 0.8;
+  const cr = blue ? 90 : 235, cg = blue ? 180 : 70, cb = 255;
+  P(p.x, p.z); const q = groundQ(p.z), r = p.r * PS * (1 + (p.alive ? 0.04 * Math.sin(FX.time * 5) : p.gone * 1.2)) * (1 + p.flash * 0.15);
+  quad(PX - r, PY - r * q, PX + r, PY + r * q, A.disc.u0, A.disc.v0, A.disc.u1, A.disc.v1, rgba(cr, cg, cb, 170 * fade), EX_ADD);
+  for (let k = 0; k < 3; k++) {
+    const u = (FX.time * (blue ? 0.7 : -0.7) + k / 3) % 1, f = blue ? u : 1 + u, r2 = r * (0.25 + 0.85 * (f % 1));
+    quad(PX - r2, PY - r2 * q, PX + r2, PY + r2 * q, A.ring2.u0, A.ring2.v0, A.ring2.u1, A.ring2.v1, rgba(cr, cg, cb, 230 * fade * (1 - (f % 1) * 0.7)), EX_ADD);
+  }
+  if (p.open && p.alive) spr(A.soft, PX, PY - 1.6 * PS, r * 1.6, rgba(cr, cg, cb, 60 + 30 * Math.sin(FX.time * 3)), EX_ADD);
+  // 出口
+  if (p.alive) { const tz = p.tz + 0.8; P(rcx(tz), tz); const q2 = groundQ(tz), r3 = 2.2 * PS; quad(PX - r3 * 1.8, PY - r3 * q2, PX + r3 * 1.8, PY + r3 * q2, A.ring2.u0, A.ring2.v0, A.ring2.u1, A.ring2.v1, rgba(cr, cg, cb, (70 + 40 * Math.sin(FX.time * 4)) * fade), EX_ADD); }
+}
+// 毒霧：貼地的一片綠，再在兵的上面疊幾團飄著的霧
+function drawFogGround(f) {
+  const A = AT.sp, x0 = f.x - f.w / 2, x1 = f.x + f.w / 2, za = Math.max(MZ_OUT - 4, f.z), zb = f.z + f.len; if (zb < za) return;
+  P(x0, za); const ax = PX, ay = PY; P(x1, za); const bx = PX; P(x1, zb); const cx = PX, cy = PY; P(x0, zb);
+  quad4(PX, cy, cx, cy, bx, ay, ax, ay, rgba(90, 200, 60, 70), 0);
+  quad4(PX, cy, cx, cy, bx, ay, ax, ay, rgba(120, 255, 80, 40 + 20 * Math.sin(FX.time * 3 + f.z)), EX_ADD);
+}
+function drawFogTop(f) {
+  const A = AT.sp, n = Math.max(3, Math.round(f.len / 2.6)), t = FX.time;
+  for (let k = 0; k < n; k++) {
+    const h1 = hash01(k * 13 + (f.z * 7 | 0)), z = f.z + (k + 0.5) * f.len / n; if (z < MZ_OUT - 4) continue;
+    const x = f.x + (h1 - 0.5) * f.w * 0.7 + Math.sin(t * 0.9 + k) * 0.4;
+    P(x, z); const w = f.w * PS * (0.75 + 0.3 * hash01(k * 7 + 1)), yy = PY - (1.2 + 0.5 * Math.sin(t * 1.3 + k * 2)) * PS;
+    spr(A.puff, PX, yy + w * 0.35, w, rgba(120, 200, 80, 105), 0);
+    spr(A.soft, PX, yy, w * 0.8, rgba(150, 255, 90, 50), EX_ADD);
+  }
+}
+// 九頭蛇：身體盤在路中間，三條蛇頸各伸到自己那條線上；砍掉的頭只剩一截斷頸
+function drawHydra(o) {
+  const A = AT.sp, t = FX.time; P(o.x, o.z + 1.5); const s = PS, bx = PX, by = PY;
+  const fl = o.flash > 0 ? ((Math.min(1, o.flash / 0.12) * 45) | 0) << 8 : 0;
+  spr(A.soft, bx, by + 0.6 * s, 24 * s, rgba(0, 0, 20, 110), 0);
+  if (o.rage) spr(A.soft, bx, by - 5 * s, 22 * s, rgba(120, 255, 60, 60 + 40 * Math.sin(t * 9)), EX_ADD);
+  spr(A.hyB, bx, by + 0.4 * s, 21 * s, WHITE, fl);
+  const baseY = 5.2, ky = V.ky;
+  for (const h of o.heads) {
+    const alive = h.alive, g = alive ? h.grow : 0, bite = Math.max(0, h.bite), hz = o.z - 1.6 - bite * 1.6;
+    const hy = baseY + (alive ? 4.2 * g + Math.sin(t * 1.8 + h.k * 2.1) * 0.5 - bite * 1.8 : 0.8), hx = h.x + (alive ? Math.sin(t * 1.3 + h.k) * 0.4 : 0);
+    const segs = alive ? 7 : 2, x0 = o.x + (h.k - 1) * 2.2, z0 = o.z + 1.2, y0 = 4;
+    for (let i = segs; i >= 1; i--) {
+      const u = i / (segs + 1) * (alive ? 1 : 0.35), sx = lerp(x0, hx, u) + Math.sin(u * Math.PI) * (h.k - 1) * 0.8, sz = lerp(z0, hz, u), sy = lerp(y0, hy, u) + Math.sin(u * Math.PI) * 1.6;
+      P(sx, sz); spr(A.hyN, PX, PY - sy * PS * ky, (3.4 - u * 0.6) * PS, WHITE, h.flash > 0 ? (45 << 8) : fl);
+    }
+    if (!alive) { P(lerp(x0, hx, 0.4), lerp(z0, hz, 0.4)); spr(A.soft, PX, PY - 5 * PS * ky, 2.8 * PS, rgba(255, 60, 40, 160), EX_ADD); continue; }
+    P(hx, hz); const w = 7.6 * PS * (0.35 + 0.65 * g);
+    spr(A.soft, PX, PY + 0.4 * PS, w * 0.9, rgba(0, 0, 20, 70), 0);
+    if (h.cd < 1.2) spr(A.soft, PX, PY - hy * PS * ky + w * 0.25, w * 1.1, rgba(140, 255, 70, 140 * (1 - h.cd / 1.2)), EX_ADD);
+    sprRot(A.hyH, PX, PY - hy * PS * ky, w, w, Math.sin(t * 1.5 + h.k) * 0.12, WHITE, h.flash > 0 ? (60 << 8) : fl);
+    hpBar(PX, PY - hy * PS * ky - w * 0.66, 4.6 * PS, 0.42 * PS, h.hp / h.max, rgba(130, 240, 80, 255));
+  }
+}
+function drawZaps() {
+  const A = AT.sp, zs = FX.zaps;
+  for (let i = zs.length - 1; i >= 0; i--) {
+    const z = zs[i], age = FX.time - z.t; if (age > 0.4 || age < 0) { zs.splice(i, 1); continue; }
+    const a = 1 - age / 0.4; P(z.x, z.z); const gx = PX, gy = PY;
+    let px = gx + (hash01(z.seed) - 0.5) * 60 * V.u, py = -20;
+    const n = 7;
+    for (let k = 1; k <= n; k++) {
+      const u = k / n, nx = k === n ? gx : lerp(px, gx, 1 / (n - k + 1)) + (hash01(z.seed + k * 7) - 0.5) * 50 * V.u, ny = lerp(-20, gy, u);
+      const dx = nx - px, dy = ny - py, len = Math.hypot(dx, dy), rot = Math.atan2(dx, -dy);
+      sprRot(A.streak, (px + nx) / 2, (py + ny) / 2, 9 * V.u, len * 1.05, rot, rgba(170, 200, 255, 200 * a), EX_ADD);
+      sprRot(A.streak, (px + nx) / 2, (py + ny) / 2, 3.5 * V.u, len * 1.05, rot, rgba(255, 255, 255, 255 * a), EX_ADD);
+      px = nx; py = ny;
+    }
+    spr(A.soft, gx, gy, 9 * PS * a, rgba(220, 235, 255, 230 * a), EX_ADD);
+  }
+}
 function renderFrame() {
   const A = AT.sp, W = V.W, H = V.H, ky = V.ky, B = S.B, R = S.R;
   if (W < 2 || H < 2 || !GLR.bg) return;
@@ -528,14 +655,17 @@ function renderFrame() {
   /* 地面層：落點預告、大將落地影、貼地的圈 */
   for (const m of S.marks) {
     P(m.x, m.z); const f = m.t / m.dur, r = m.r * PS, q = groundQ(m.z);
-    quad(PX - r, PY - r * q, PX + r, PY + r * q, A.disc.u0, A.disc.v0, A.disc.u1, A.disc.v1, rgba(255, 50, 30, 90 + 120 * f), 0);
+    const zap = m.kind === 'zap';
+    quad(PX - r, PY - r * q, PX + r, PY + r * q, A.disc.u0, A.disc.v0, A.disc.u1, A.disc.v1, zap ? rgba(200, 225, 255, 70 + 150 * f) : rgba(255, 50, 30, 90 + 120 * f), zap ? EX_ADD : 0);
     const r2 = r * (1.6 - 0.6 * f);
-    quad(PX - r2, PY - r2 * q, PX + r2, PY + r2 * q, A.ring2.u0, A.ring2.v0, A.ring2.u1, A.ring2.v1, rgba(255, 240, 200, 230), 0);
+    quad(PX - r2, PY - r2 * q, PX + r2, PY + r2 * q, A.ring2.u0, A.ring2.v0, A.ring2.u1, A.ring2.v1, zap ? rgba(255, 255, 255, 255) : rgba(255, 240, 200, 230), 0);
   }
   for (const p of S.peds) if (!p.built) {
     P(p.x, p.z); const r = 2.6 * PS * (1 + 0.08 * Math.sin(S.time * 4)), q = groundQ(p.z);
     quad(PX - r, PY - r * q, PX + r, PY + r * q, A.ring2.u0, A.ring2.v0, A.ring2.u1, A.ring2.v1, p.foe ? rgba(255, 110, 80, 190) : rgba(255, 220, 110, 200), EX_ADD);
   }
+  for (const p of S.portals) drawPortalGround(p);
+  for (const f of S.fogs) drawFogGround(f);
   if (S.flood && S.flood.t < S.flood.dur + 0.5) drawFlood(S.flood);
   if (S.wind) drawWindSign();
   if (S.wheel) drawRamLine();
@@ -546,13 +676,13 @@ function renderFrame() {
     if (f.snow) { drawAvalanche(f, strip, zA, zB); continue; }
     if (f.t < f.warn) {
       const p = f.t / f.warn, a = (0.34 + 0.26 * p) * (0.62 + 0.38 * Math.sin(f.t * (10 + 16 * p)));
-      strip(zA, zB, rgba(255, 50, 24, 255 * a), 0);
-      strip(zA, zB, rgba(255, 120, 40, 90 * a), EX_ADD);
+      strip(zA, zB, f.gas ? rgba(70, 220, 40, 255 * a) : rgba(255, 50, 24, 255 * a), 0);
+      strip(zA, zB, f.gas ? rgba(150, 255, 90, 90 * a) : rgba(255, 120, 40, 90 * a), EX_ADD);
       for (const xx of [x0, x1]) { P(xx, zA); const ax = PX, ay = PY; P(xx, zB); const e = Math.max(1.5, 0.12 * V.s0); quad4(PX - e * 0.4, PY, PX + e * 0.4, PY, ax + e, ay, ax - e, ay, rgba(255, 220, 120, 200), 0); }
     } else {
       const zt = Math.min(zB, f.zf + FIRE_TRAIL);
-      if (f.zf > zA) { const a = 0.5 + 0.3 * Math.sin(f.t * 30); strip(zA, Math.min(zB, f.zf), rgba(255, 50, 24, 255 * a), 0); }
-      if (zt > zA) { strip(Math.max(zA, f.zf), zt, rgba(255, 120, 30, 170), 0); strip(Math.max(zA, f.zf), zt, rgba(255, 200, 80, 120), EX_ADD); }
+      if (f.zf > zA) { const a = 0.5 + 0.3 * Math.sin(f.t * 30); strip(zA, Math.min(zB, f.zf), f.gas ? rgba(70, 220, 40, 255 * a) : rgba(255, 50, 24, 255 * a), 0); }
+      if (zt > zA) { strip(Math.max(zA, f.zf), zt, f.gas ? rgba(100, 210, 60, 170) : rgba(255, 120, 30, 170), 0); strip(Math.max(zA, f.zf), zt, f.gas ? rgba(170, 255, 110, 120) : rgba(255, 200, 80, 120), EX_ADD); }
       strip(Math.max(zA, zt), zB, rgba(30, 14, 10, 80), 0);
     }
   }
@@ -574,6 +704,7 @@ function renderFrame() {
   for (const o of S.bigs) pushObj(o.z - 0.01, 3, o);
   for (const g of S.rgates) pushObj(g.z, 9, g);
   for (const o of S.twisters) pushObj(o.z, 10, o);
+  for (const p of S.portc) pushObj(p.z, 13, p);
   if (march) {
     const d = S.sq.dist;
     const zc = S.col ? collapseZ() : -1e9;
@@ -592,7 +723,7 @@ function renderFrame() {
       const o = objs[oi++];
       switch (o.kind) {
         case 0: drawGate(o.ref); break; case 1: drawPed(o.ref); break; case 2: drawBarrel(o.ref); break; case 3: drawBig(o.ref); break; case 4: drawCannon(); break;
-        case 5: drawRailPosts(o.ref); break; case 6: drawArch(o.ref); break; case 7: drawSaw(o.ref); break; case 8: drawMarchFort(); break; case 9: drawRGate(o.ref); break; case 10: drawTwister(o.ref); break; case 11: drawRoll(o.ref); break; case 12: if (S.boss) drawFist(S.boss, o.ref); break;
+        case 5: drawRailPosts(o.ref); break; case 6: drawArch(o.ref); break; case 7: drawSaw(o.ref); break; case 8: drawMarchFort(); break; case 9: drawRGate(o.ref); break; case 10: drawTwister(o.ref); break; case 11: drawRoll(o.ref); break; case 12: if (S.boss) drawFist(S.boss, o.ref); break; case 13: drawPortc(o.ref); break;
       }
     }
     if (ordCnt[b + 1] > ordCnt[b]) drawSoldiers(ordCnt[b], ordCnt[b + 1], tAnim);
@@ -606,6 +737,12 @@ function renderFrame() {
     } else if (p.kind === 'bolt') {
       P(p.x, p.z); const x0 = PX, y0 = PY - 1.1 * PS * ky, s = PS; P(p.x + p.vx * 0.02, p.z + p.vz * 0.02);
       sprRot(A.bolt, x0, y0, 0.55 * s, 3.3 * s, Math.atan2(PX - x0, -(PY - 1.1 * PS * ky - y0)), WHITE, 0);
+    } else if (p.kind === 'zap') {
+      continue;
+    } else if (p.kind === 'volleyA') {
+      P(p.x, p.z); const s = PS, sh = 1 / (1 + p.y * 0.1), yy = PY - p.y * s * ky, q = p.t / p.dur, rot = q < 0.5 ? 0.25 : Math.PI - 0.25;
+      spr(A.soft, PX, PY + 0.4 * s * sh, 2.6 * s * sh, rgba(0, 0, 20, 90), 0);
+      for (let k = 0; k < 5; k++) sprRot(A.bolt, PX + (k - 2) * 0.55 * s, yy + ((k * 37) % 5 - 2) * 0.25 * s, 0.4 * s, 2.2 * s, rot + (k - 2) * 0.06, rgba(255, 200, 170, 255), 0);
     } else {
       P(p.x, p.z); const s = PS, sh = 1 / (1 + p.y * 0.1);
       spr(A.soft, PX, PY + 0.7 * s * sh, 2.6 * s * sh, rgba(0, 0, 20, 120), 0);
@@ -615,7 +752,9 @@ function renderFrame() {
     }
   }
   for (const f of S.strafes) if (f.fly && f.t >= f.warn - 0.25) drawDragonAt(f.x, f.zf + 7, 7.5, 13, 1, 0, false);
+  for (const f of S.fogs) drawFogTop(f);
   drawParticles(false);
+  if (FX.zaps.length) drawZaps();
 
   /* 浮字 */
   for (const f of FX.floats) {
@@ -639,7 +778,12 @@ function renderFrame() {
   }
   if (S.boss) {
     const o = S.boss; P(o.x, o.z);
-    text(String(Math.ceil(o.hp)), PX, PY - (o.kind === 'dragon' ? 12 : o.kind === 'colossus' ? 24.5 : 16.5) * PS, 2.6 * PS, rgba(255, 220, 120, 255), 0);
+    if (o.kind !== 'hydra') text(String(Math.ceil(o.hp)), PX, PY - (o.kind === 'dragon' ? 12 : o.kind === 'colossus' ? 24.5 : 16.5) * PS, 2.6 * PS, rgba(255, 220, 120, 255), 0);
+  }
+  for (const p of S.portals) if (p.alive && p.team === 1 && p.open) {
+    P(p.x, p.z); const th = 1.6 * PS, str = String(p.need - p.got), tw = textW(str, th), ty = PY - 3.6 * PS + Math.sin(FX.time * 3) * 0.12 * PS;
+    sprWH(A.icon, PX - tw / 2 - th * 0.75, ty + th * 0.14, th * 0.72, th * 0.72, rgba(150, 205, 255, 255), 0);
+    text(str, PX + th * 0.3, ty, th, rgba(255, 240, 170, 255), 0);
   }
 
   /* 天氣：雨絲、飄雪（畫面座標，不跟戰場走） */

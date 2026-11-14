@@ -42,7 +42,7 @@ function startLevel(idx) {
   $('hint').textContent = march ? '← 左右拖曳，帶隊前進 →' : '← 左右拖曳，移動兵砲 →';
   $('hint').hidden = march ? SV.seenM : !(idx === 0 && !SV.seen); $('hint').classList.toggle('up', march);
   $('wallLbl').textContent = march ? '路程' : '城牆'; $('wallBar').classList.remove('warn'); $('wallBar').classList.toggle('road', march);
-  $('tugRl').textContent = march ? (LEVELS[idx].boss === 'dragon' ? '赤龍' : LEVELS[idx].boss === 'colossus' ? '巨像' : '敵堡') : LEVELS[idx].wheel ? '巨輪' : '赤潮';
+  $('tugRl').textContent = march ? (LEVELS[idx].boss === 'dragon' ? '赤龍' : LEVELS[idx].boss === 'colossus' ? '巨像' : LEVELS[idx].boss === 'hydra' ? '九頭蛇' : '敵堡') : LEVELS[idx].wheel ? '巨輪' : '赤潮';
   $('banner').className = ''; $('say').className = 'chamfer'; $('mile').className = '';
   setTimeout(() => { if (G.mode === 'play' && G.run === run) { const el = $('banner'); el.className = 'blue'; el.innerHTML = ''; const s = document.createElement('small'); s.textContent = '第' + NUM_ZH[idx] + '關'; el.appendChild(s); el.appendChild(document.createTextNode(LEVELS[idx].name)); replay(el, 'show'); } }, 60);
   setTimeout(() => { if (G.mode === 'play' && G.run === run && S.time < 6) say(LEVELS[idx].tip); }, 1900);
@@ -106,7 +106,7 @@ function hudUpdate(force) {
     windUpdate();
     $('tugB').textContent = fmt(S.B.n);
     const boss = S.boss;
-    if (!!boss !== G.bossBar) { G.bossBar = !!boss; $('tug').classList.toggle('boss', G.bossBar); $('tugRl').textContent = boss ? (boss.kind === 'dragon' ? '赤龍' : boss.kind === 'colossus' ? '巨像' : '魔王') : march ? (S.lv.boss === 'dragon' ? '赤龍' : S.lv.boss === 'colossus' ? '巨像' : '敵堡') : S.wheel ? '巨輪' : '赤潮'; }
+    if (!!boss !== G.bossBar) { G.bossBar = !!boss; $('tug').classList.toggle('boss', G.bossBar); $('tugRl').textContent = boss ? (boss.kind === 'dragon' ? '赤龍' : boss.kind === 'colossus' ? '巨像' : boss.kind === 'hydra' ? '九頭蛇' : '魔王') : march ? (S.lv.boss === 'dragon' ? '赤龍' : S.lv.boss === 'colossus' ? '巨像' : S.lv.boss === 'hydra' ? '九頭蛇' : '敵堡') : S.wheel ? '巨輪' : '赤潮'; }
     if (boss) { $('tugR').textContent = fmt(Math.ceil(boss.hp)); setTrack($('tugBar'), boss.hp / boss.maxHp); }
     else if (march) {
       // 我軍人數對上橋頭堡的兵力：藍條過半就是夠打

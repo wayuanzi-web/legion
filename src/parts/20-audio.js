@@ -84,6 +84,9 @@ function sfx(name, arg) {
       case 'flood': noise(2.6, 0.5, 'lowpass', 500, 1800, 0.7, 0, null); noise(2.4, 0.22, 'bandpass', 2400, 900, 0.9, 0.2); tone(60, 2.2, 'sine', 0.4, 38, 0, null, 0.3); break;
       case 'crack': tone(1800, 0.05, 'square', 0.04, 600); noise(0.25, 0.12, 'highpass', 2600, 900, 1.5); break;
       case 'splash': noise(0.7, 0.3, 'lowpass', 1800, 300, 0.9); tone(160, 0.3, 'sine', 0.16, 60); break;
+      case 'thunder': noise(1.4, 0.42, 'lowpass', 2600, 90, 0.6); noise(0.12, 0.3, 'highpass', 2500, 0, 1); tone(70, 1.1, 'sine', 0.3, 30); break;
+      case 'slam': if (gap('slam', 120)) return; tone(90, 0.3, 'square', 0.16, 40); noise(0.3, 0.3, 'lowpass', 1500, 120, 1); noise(0.08, 0.12, 'highpass', 4000, 0, 2); break;
+      case 'warp': if (gap('warp', 140)) return; tone(520, 0.3, 'sine', 0.07, 1300); tone(780, 0.24, 'triangle', 0.04, 1800, 0.04); break;
       case 'aval': noise(1.6, 0.42, 'lowpass', 600, 120, 0.7); noise(1.2, 0.16, 'bandpass', 1400, 500, 1.2, 0.1); break;
       case 'wind': noise(2.4, 0.2, 'bandpass', 380, 1300, 1.6, 0, null); noise(1.8, 0.1, 'bandpass', 900, 500, 2.2, 0.3, null); break;
       case 'warn2': for (let i = 0; i < 3; i++) tone(i & 1 ? 520 : 700, 0.16, 'sawtooth', 0.12, 0, i * 0.17, null, 0.02); break;

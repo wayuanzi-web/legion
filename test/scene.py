@@ -74,6 +74,14 @@ SCENES = {
   'l16d': ('帝都決戰', 'good', [('until', 'w.S.boss && w.S.boss.fixed'), ('js', 'S.boss.hp = S.boss.maxHp * 0.45'),
     ('until', '!w.S.boss || (w.S.boss.arms.filter((f) => !f.hit).length === 2 && w.S.boss.arms[0].t > 1.0)'), ('shot', 'l16d_warn', FULL),
     ('until', '!w.S.boss || (w.S.boss.arms.length && w.S.boss.arms[0].hit)'), ('adv', 0.1), ('shot', 'l16d_slam', FULL)]),
+  'l17': ('千斤閘', 'good', [('t', 6), ('shot', 'l17_06', FULL), ('until', 'w.S.portc.some((p) => p.shaking)'), ('adv', 0.6), ('shot', 'l17_shake', FULL), ('adv', 0.8), ('shot', 'l17_shut', FULL), ('t', 60), ('shot', 'l17_60', FULL)]),
+  'l18': ('毒霧林', 'good', [('until', 'w.S.fogs.some((f) => f.z < 30)'), ('shot', 'l18_fog', FULL), ('adv', 2), ('shot', 'l18_fog2', FULL)]),
+  'l19': ('雷雨谷', 'good', [('until', 'w.S.marks.some((m) => m.kind === "zap")'), ('adv', 0.6), ('shot', 'l19_warn', FULL), ('until', 'w.S.storm && !w.S.marks.some((m) => m.kind === "zap")'), ('adv', 0.05), ('shot', 'l19_zap', FULL), ('t', 70), ('shot', 'l19_70', FULL)]),
+  'l20': ('弓樓道', 'good', [('until', 'w.S.barrels.some((o) => o.rw === "tower" && o.z < 70)'), ('shot', 'l20_tower', FULL), ('until', 'w.S.proj.some((p) => p.kind === "volleyA")'), ('adv', 0.6), ('shot', 'l20_volley', FULL)]),
+  'l21': ('奇門陣', 'good', [('t', 12), ('shot', 'l21_12', FULL), ('t', 30), ('shot', 'l21_30', FULL), ('t', 60), ('shot', 'l21_60', FULL)]),
+  'l22': ('追兵', 'good', [('until', 'w.S.barrels.some((o) => o.rw === "rear" && o.z < 40)'), ('shot', 'l22_rear', FULL), ('until', 'w.S.R.n > 10 && w.S.sq.dist > 125'), ('adv', 2.5), ('shot', 'l22_chase', FULL)]),
+  'l23': ('鐵壁', 'good', [('t', 18), ('shot', 'l23_18', FULL), ('t', 66), ('shot', 'l23_66', FULL)]),
+  'l24': ('九頭蛇', 'good', [('until', 'w.S.boss && w.S.boss.fixed'), ('adv', 2), ('shot', 'l24_boss', FULL), ('adv', 5), ('shot', 'l24_breath', FULL), ('js', 'S.boss.heads[0].hp = 1'), ('adv', 1.5), ('shot', 'l24_head', FULL)]),
 }
 async def main():
     name = sys.argv[1]

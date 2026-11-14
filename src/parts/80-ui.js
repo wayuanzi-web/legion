@@ -27,8 +27,8 @@ const UPS = [
   { k: 'wall', name: '城牆', desc: '城牆多撐八下；行軍時開局多帶三個兵' }
 ];
 const UP_COST = [120, 220, 360, 540, 760];
-const NUM_ZH = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六'];
-const CHAPTERS = [[0, '破陣篇'], [5, '遠征篇'], [10, '天下篇']];      // [第一關的索引, 篇名]
+const NUM_ZH = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四'];
+const CHAPTERS = [[0, '破陣篇'], [5, '遠征篇'], [10, '天下篇'], [16, '無雙篇']];      // [第一關的索引, 篇名]
 const chapOf = (i) => { let k = 0; for (let c = 0; c < CHAPTERS.length; c++) if (i >= CHAPTERS[c][0]) k = c; return k; };
 const UI = { sel: 0, mode: 'home', wipeArm: 0 };
 
@@ -62,7 +62,8 @@ function homeRender() {
   });
   const box = $('lvls'); box.innerHTML = '';
   const c0 = CHAPTERS[ci][0], c1 = ci + 1 < CHAPTERS.length ? CHAPTERS[ci + 1][0] : LEVELS.length;
-  box.style.gridTemplateColumns = 'repeat(' + (c1 - c0) + ', 1fr)'; box.classList.toggle('six', c1 - c0 > 5);
+  const cols = c1 - c0 > 6 ? Math.ceil((c1 - c0) / 2) : c1 - c0;      // 八關的一篇排成兩列
+  box.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)'; box.classList.toggle('six', cols > 5);
   LEVELS.forEach((lv, i) => {
     if (i < c0 || i >= c1) return;
     const b = document.createElement('button'); const locked = i >= SV.open;
@@ -125,11 +126,14 @@ const LOSE_TIPS_M = [
 function loseTips(idx, march) {
   const lv = LEVELS[idx];
   if (!march) {
-    if (!lv.wind && !lv.wheel && !(lv.peds || []).some((p) => p.foe)) return LOSE_TIPS;
     const t = LOSE_TIPS.slice();
     if ((lv.peds || []).some((p) => p.foe)) t.push('兵砲移到最邊上，兵就會走進路邊的敵軍砲台，把它奪下來。', '地上亮起紅圈就是砲彈要落下來：先把兵砲移開，別一直把兵往砲彈底下送。');
     if (lv.wind) t.push('風往哪邊吹，就往反方向偏著瞄；左上角的風向計會先預告下一陣風。', '旋風碰到誰都捲走：它往前庭捲過來時，把兵砲移到另一邊。');
     if (lv.wheel) t.push('衝進城門的兵會把巨輪城頂回去：兵越多，它越推不動。', '別讓巨輪城推到紅色的撞城線，它一停下來就會開始砸城牆。');
+    if (lv.portc) t.push('鐵閘落下前會先抖、變紅：這時候別把兵往閘門底下送。', '把兵砲移到最邊上，兵就會走進路邊的絞盤；奪下來那道閘就不會再落下。');
+    if (lv.storm) t.push('雷專劈兵最密的地方：先把右邊的避雷塔奪下來，雷就只劈赤潮。', '地上亮起白圈就是雷要劈下來，把兵砲往旁邊移一下。');
+    if (lv.portals) t.push('紅色的陣開了以後，赤潮會直接跳到城下：把兵送進紅陣，數字歸零就堵死了。', '左邊的藍陣會把兵送到敵城前：先守穩，再往藍陣送兵攻城。');
+    if ((lv.script || []).some((e) => e.f === 'cart')) t.push('盾車正面撞不動：先蓋好連弩車和轟天砲，大將出陣時讓他去砍盾車。');
     return t;
   }
   const t = LOSE_TIPS_M.slice();
@@ -141,10 +145,14 @@ function loseTips(idx, march) {
   if (lv.track.some((e) => e.t === 'crack')) t.push('薄冰一踩就碎，從旁邊繞過去；敵人踩上去一樣會掉下去。');
   if (lv.collapse) t.push('拒馬擋路時隊伍會停下來，身後的橋會一路塌過來：兵越多箭越密，拒馬破得越快。', '疾行門能讓全隊加速，甩開身後的崩塌。');
   if (lv.boss === 'colossus') t.push('巨像的拳頭砸下來前，地上會先亮紅圈；暴怒後雙拳齊砸橋中央，往欄杆靠、擠成長龍就躲得開。');
+  if (lv.track.some((e) => e.t === 'fog')) t.push('待在毒霧裡兵會一直倒下：看準霧飄開的空隙，從旁邊鑽過去。');
+  if (lv.track.some((e) => e.t === 'tower')) t.push('弓樓的箭雨落下前地上會亮紅圈；靠到弓樓那一邊、對準它，幾輪就能射倒。');
+  if (lv.track.some((e) => e.t === 'chase')) t.push('追兵會從背後咬隊尾：先撿回馬箭，再穿過疾行門甩掉他們。');
+  if (lv.boss === 'hydra') t.push('九頭蛇的三顆頭各守一條：站到哪顆頭面前，箭才打得到牠；牠也只朝那一條噴毒。', '砍掉一顆頭後要趕快換下一條，晚了它會長回來。');
   if (lv.boss === 'dragon') t.push('橋面一亮起紅色火線就往另一邊閃；等火燒過去，再回來對準赤龍放箭。', '兵越多箭越密，赤龍的血掉得越快：路上的乘法門和援兵能拿就拿。');
   return t;
 }
-const WIN_TITLE = { 4: '天下太平', 9: '屠龍凱旋', 15: '天下一統' };      // 每一篇最後一關打贏的標題
+const WIN_TITLE = { 4: '天下太平', 9: '屠龍凱旋', 15: '天下一統', 23: '萬軍無雙' };      // 每一篇最後一關打贏的標題
 function showResult(won, st) {
   $('resTitle').textContent = won ? (WIN_TITLE[st.idx] || '大獲全勝') : st.march ? '全軍覆沒' : '城牆失守';
   $('resTitle').className = won ? '' : 'lose';

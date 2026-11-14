@@ -35,7 +35,7 @@ function makeBot(skill, rand) {
       if (S.time > 4 && S.surge.on <= 0) {
         for (const p of S.peds) {
           if (p.kind === 'sluice') continue;
-          if (p.kind === 'battery' || p.kind === 'bigcannon') {
+          if (p.kind === 'battery' || p.kind === 'bigcannon' || p.kind === 'winch' || p.kind === 'rod') {
             // 敵軍砲台：戰線推過去了才送兵去奪。兵從兵砲出去是沿著線道走，瞄最邊上，兵才會走在那一側最外面的線道
             if (!p.built && S.front > p.z + 3 && (skill === 'good' || S.time % 9 < 5)) { bx = p.edge * CAN_LIM; break; }
             continue;
@@ -43,6 +43,8 @@ function makeBot(skill, rand) {
           if (!p.built && S.front > (skill === 'good' ? 32 : 36) && (skill === 'good' || S.time % 9 < 4.5)) { bx = clamp(p.x, -CAN_LIM, CAN_LIM); break; }
         }
       }
+      // 赤潮的傳送陣：戰線推過去了就送兵去堵（兵沿著線道走，換算成兵砲要站的位置）
+      for (const p of S.portals) if (p.alive && p.team === 1 && S.front > p.z - 8 && (skill === 'good' || S.time % 9 < 4.5)) bx = clamp(laneT(p.x, p.z) * (rhw(CANZ) - LANE_PAD), -CAN_LIM, CAN_LIM);
       // 水閘：隘道裡擠滿敵人的時候才去開
       for (const p of S.peds) {
         if (p.kind !== 'sluice' || (S.flood && !S.flood.done)) continue;
@@ -71,17 +73,18 @@ function makeBot(skill, rand) {
 
 /* ---------- 行軍玩法的自動玩家 ---------- */
 const botCols = new Float32Array(40);
+let botChasers = false;
 // 隊伍中心站在 x、往前看 look 遠：這段路走完大概會多（少）幾個兵。
 // 眼前的東西算全額，遠處的打折（之後還來得及換位置）；眼前的危險加重，寧可少拿也不要踩進去
 function marchScore(x, n, look) {
-  const q = S.sq, a = Math.max(squadHalf(x), 0.6), x0 = x - a, x1 = x + a, zf = q.front, v = Math.max(2, q.v);
+  const chasers = botChasers, q = S.sq, a = Math.max(squadHalf(x), 0.6), x0 = x - a, x1 = x + a, zf = q.front, v = Math.max(2, q.v);
   const rate = arrowRate(n, q.wpn), near = 16;
   const wt = (z) => (z - zf < near ? 1 : 0.3), wd = (z) => (z - zf < near ? 3 : 0.4);
   let sc = 0;
   for (const g of S.gates) {
     if (!g.alive || g.z < MZ_REAR || g.z > zf + look) continue;
     const gx = botGateX(g, S.time + Math.max(0, g.z - q.cz) / v), ov = botOvl(x0, x1, gx - g.w / 2, gx + g.w / 2);
-    if (g.rush) { if (ov > 0.3) sc += (S.col ? 6 + n * 0.5 * clamp((collapseZ() + 34) / 30, 0.15, 1) : 4) * wt(g.z); }      // 疾行門：崩塌追得越近越值得
+    if (g.rush) { if (ov > 0.3) sc += (S.col ? 6 + n * 0.5 * clamp((collapseZ() + 34) / 30, 0.15, 1) : chasers ? 6 + n * 0.3 : 4) * wt(g.z); }      // 疾行門：崩塌追得越近越值得
     else if (g.add !== undefined) { if (ov > 0.3) sc += g.add >= 0 ? (g.add + 2) * wt(g.z) : Math.max(g.add, -n) * 1.5 * wd(g.z); }
     else if (g.m >= 1) sc += n * (ov / (2 * a)) * (g.m - 1) * wt(g.z);
     else sc += n * (ov / (2 * a)) * (g.m - 1) * wd(g.z);
@@ -90,10 +93,15 @@ function marchScore(x, n, look) {
     if (!o.alive || o.fuse >= 0 || o.z < MZ_REAR || o.z > zf + look) continue;
     const ov = botOvl(x0, x1, o.x - o.hw, o.x + o.hw); if (ov <= 0) continue;
     const dmg = rate * (ov / (2 * a)) * Math.max(0, o.z - zf) / v * WPN_DMG[q.wpn], left = Math.max(0, o.hp - dmg);
-    const val = o.rw === 'troop' ? o.n : o.rw === 'bow' ? 12 + n * 0.25 : o.rw === 'elite' ? 40 + n * 0.2 : 4;
+    const val = o.rw === 'troop' ? o.n : o.rw === 'bow' ? 12 + n * 0.25 : o.rw === 'elite' ? 40 + n * 0.2 : o.rw === 'rear' ? 15 + n * 0.15 : o.rw === 'tower' ? 10 + n * 0.1 : 4;
     sc += val * wt(o.z) - Math.min(n, left) * 1.2 * wd(o.z) / 3;
   }
   for (const h of S.holes) { if (h.z > zf + look || h.z + h.len < MZ_REAR) continue; sc -= n * botOvl(x0, x1, h.x - h.w / 2 - 0.3, h.x + h.w / 2 + 0.3) / (2 * a) * wd(h.z); }
+  for (const f of S.fogs) {
+    if (f.z > zf + look || f.z + f.len < MZ_REAR) continue;
+    const fx = fogX(f, S.time + Math.max(0, f.z - q.cz) / v);
+    sc -= n * botOvl(x0, x1, fx - f.w / 2 - 0.3, fx + f.w / 2 + 0.3) / (2 * a) * wd(f.z) * 0.9;
+  }
   for (const c of S.cracks) { if (c.z > zf + look || c.z + c.len < MZ_REAR) continue; sc -= n * botOvl(x0, x1, c.x - c.w / 2 - 0.3, c.x + c.w / 2 + 0.3) / (2 * a) * wd(c.z) * 0.8; }
   for (const s of S.saws) {
     if (s.z > zf + look || s.z < MZ_REAR) continue;
@@ -122,7 +130,9 @@ function marchScore(x, n, look) {
     sc -= dmg >= o.hp * 1.2 ? -2 : n * ov / (2 * a) * wd(o.z);
   }
   // 對著赤龍站，箭才射得到
-  const bo = S.boss; if (bo && bo.fixed) sc += n * 0.25 * botOvl(x0, x1, bo.x - bo.r, bo.x + bo.r) / (2 * a);
+  const bo = S.boss;
+  if (bo && bo.fixed && bo.kind === 'hydra') { for (const h of bo.heads) if (h.alive) sc += n * 0.25 * botOvl(x0, x1, h.x - HYDRA_LANE, h.x + HYDRA_LANE) / (2 * a); }      // 九頭蛇：站在頭的那條線上才打得到
+  else if (bo && bo.fixed) sc += n * 0.25 * botOvl(x0, x1, bo.x - bo.r, bo.x + bo.r) / (2 * a);
   // 擋在路上的敵陣：這幾欄裡有多少人，扣掉來得及射倒的
   let red = 0; const c0 = Math.max(0, Math.floor(x0 + 20)), c1 = Math.min(39, Math.floor(x1 + 20));
   for (let c = c0; c <= c1; c++) red += botCols[c];
@@ -140,7 +150,7 @@ function makeMarchBot(skill, rand) {
     if (S.time >= st.next && !q.siege) {
       st.next = S.time + Pm.iv;
       const lim = q.lim, n = S.B.n, r = S.R;
-      botCols.fill(0);
+      botCols.fill(0); botChasers = hasChasers();
       for (let j = 0; j < r.n; j++) if (r.hp[j] > 0 && r.gate[j] === 0 && r.z[j] > q.front && r.z[j] < q.front + Pm.look) { const c = Math.floor(r.x[j] + 20); if (c >= 0 && c < 40) botCols[c]++; }
       let best = -1e9, bx = q.x;
       for (let x = -lim; x <= lim + 0.01; x += 0.5) {

@@ -58,7 +58,8 @@ const S = {
   // mode 0 = 破陣（兵砲對赤潮）、1 = 行軍（帶隊過橋，見 52-march）
   mode: 0, fz: L, xLim: CAN_LIM, ctlZ: CANZ, scrollAcc: 0, sq: null, mf: null, track: null, ti: 0,
   holes: [], saws: [], strafes: [], rgates: [], flood: null, survive: 0,
-  wind: null, twisters: [], wheel: null, rolls: [], cracks: [], ices: [], col: null, blockZ: 1e9
+  wind: null, twisters: [], wheel: null, rolls: [], cracks: [], ices: [], col: null, blockZ: 1e9,
+  portc: [], portals: [], storm: null, fogs: []
 };
 
 function ev(a, b, c, d, e, f, g, h, i, j) { if (S.on) S.on(a, b, c, d, e, f, g, h, i, j); }
@@ -167,14 +168,15 @@ function countIn(s, x, z, rad) {
   }
   return k;
 }
-function hurtBig(b, dmg) {
+function hurtBig(b, dmg, x) {
   if (b.dead || b.st === 'rise') return;
+  if (b.kind === 'hydra') { hydraHurt(b, dmg, x); return; }      // 九頭蛇：傷害算在那條線上的頭
   if (b.kind === 'hero') { b.life -= dmg; b.flash = 0.12; return; }   // 大將挨打是扣出陣時間
   b.hp -= dmg; b.flash = 0.12;
   if (b.hp <= 0) {
     b.dead = true; b.hp = 0;
     if (b.team === 1) {
-      S.kills++; S.coinsBig += b.kind === 'boss' ? 200 : b.kind === 'dragon' ? 300 : b.kind === 'colossus' ? 400 : b.kind === 'giant' ? 20 : 3;
+      S.kills++; S.coinsBig += b.kind === 'boss' ? 200 : b.kind === 'dragon' ? 300 : b.kind === 'colossus' ? 400 : b.kind === 'giant' ? 20 : b.kind === 'cart' ? 8 : 3;
       ev('bigdie', b);
       if (b.kind === 'colossus') { S.marks.length = 0; for (const p of S.proj) if (p.cb) p.rad = 0; }      // 還沒砸下來的拳頭、還在空中的胸口砲彈一起失效（這裡可能正在 stepProj 的迴圈裡，不能 splice）
       if (b.kind === 'boss' || b.kind === 'dragon' || b.kind === 'colossus') { S.boss = null; S.bossDone = true; winNow(); }
@@ -186,7 +188,7 @@ function blastBigs(team, x, z, rad, dmg) {
   for (let i = 0; i < bs.length; i++) {
     const b = bs[i]; if (b.dead || b.team !== team || b.st === 'fly') continue;
     const dx = b.x - x, dz = b.z - z, rr2 = rad + b.r;
-    if (dx * dx + dz * dz < rr2 * rr2) hurtBig(b, dmg);
+    if (dx * dx + dz * dz < rr2 * rr2) hurtBig(b, dmg, x);
   }
 }
 function wallHit(dmg, x) {
@@ -267,6 +269,7 @@ function simInit(idx, up, seed, diff) {
   S.mode = 0; S.fz = L; S.xLim = CAN_LIM; S.ctlZ = CANZ; S.scrollAcc = 0; S.sq = null; S.mf = null; S.track = null; S.ti = 0;
   S.holes = []; S.saws = []; S.strafes = []; S.rgates = []; S.flood = null; S.survive = 0; S.blueMaxZ = 0;
   S.wind = lv.wind ? { v: 0, i: 0, max: lv.wind.v, warn: lv.wind.warn || 2.5, gusts: lv.wind.gusts, warned: false, on: false } : null; S.twisters = []; wheelInit(lv); S.rolls = []; S.cracks = []; S.ices = []; S.col = null; S.blockZ = 1e9;
+  portcInit(lv); portalsInit(lv); stormInit(lv); S.fogs = [];
   if (lv.mode === 'march') { S.gates = []; S.peds = []; S.barrels = []; marchInit(lv, up); buildGrid(S.R); buildGrid(S.B); return; }
   S.gates = []; for (const g of lv.gates) addGate(g);
   // side = 砲台蓋在路邊的崖台上（-1 左、1 右，離路緣 off）：走在那一側最外面幾條線道（|t| >= band）的兵經過時就會進去；foe = 開局在敵人手上
@@ -373,6 +376,7 @@ function stepBlue(dt) {
       b.y[i] = y;
     }
     const zp = z; z += b.spd[i] * dt;
+    if (S.portc.length) z = portcStopBlue(zp, z);      // 千斤閘關著：堆在閘門前
     const hwE = rhw(z) - LANE_PAD;
     let t = b.t[i], vl = b.vl[i];
     if (vl !== 0) { t += vl * dt / hwE; vl *= POPDAMP; if (vl > -0.15 && vl < 0.15) vl = 0; b.vl[i] = vl; }
@@ -386,6 +390,7 @@ function stepBlue(dt) {
     const x = rcx(z) + t * hwE;
     b.t[i] = t; b.x[i] = x; b.z[i] = z;
     if (z > maxZ) maxZ = z;
+    if (S.portals.length && y < 0.5 && portalBlue(i, x, z)) continue;      // 踩進傳送陣
 
     if (z >= gz0 && zp < gz1 + 0.01) {
       for (let k = 0; k < gates.length; k++) {
@@ -460,13 +465,15 @@ function stepRed(dt) {
   for (let i = 0; i < n; i++) {
     if (r.hp[i] <= 0) continue;
     let f = (r.z[i] - ZMIN) / RDZ; if (f < 0) f = 0; else if (f > RN - 1) f = RN - 1;
-    const z = r.z[i] - (r.kind[i] === 1 ? r.spd[i] : r.spd[i] * vTab[f | 0] * mul) * dt;
+    let z = r.z[i] - (r.kind[i] === 1 ? r.spd[i] : r.spd[i] * vTab[f | 0] * mul) * dt;
     let t = r.t[i]; const tt = r.sk[i];
     if (tt === tt) { const d = tt - t, m = 0.3 * dt; if (d > m) t += m; else if (d < -m) t -= m; else { t = tt; r.sk[i] = NaN; } r.t[i] = t; }
     if (nrg) {
       const zp = r.z[i];
       for (let k = 0; k < nrg; k++) { const g = rgs[k]; if (g.alive && zp > g.z && z <= g.z && !(r.gate[i] & g.bit)) { r.gate[i] |= g.bit; redGatePass(i, g, t, z); } }
     }
+    if (S.portc.length) z = portcStopRed(r.z[i], z);
+    if (S.portals.length) z = portalRed(i, z);
     r.x[i] = rcx(z) + t * (rhw(z) - LANE_PAD); r.z[i] = z;
     if (z < minZ) minZ = z;
     if (r.fl[i] > 0) r.fl[i]--;
@@ -508,9 +515,10 @@ function stepBigs(dt) {
     if (o.kind === 'boss') { stepBoss(o, dt); continue; }
     if (o.kind === 'dragon') { stepDragonBoss(o, dt); continue; }
     if (o.kind === 'colossus') { stepColossus(o, dt); continue; }
+    if (o.kind === 'hydra') { stepHydra(o, dt); continue; }
     if (o.hush && o.z < 84) { o.hush = false; ev('big', o); }
-    // 蠻兵、巨魔
-    const giant = o.kind === 'giant';
+    // 蠻兵、巨魔、盾車
+    const giant = o.kind === 'giant', cart = o.kind === 'cart';
     if (o.st === 'smash') {
       o.tm -= dt;
       if (o.tm <= 0) {
@@ -521,15 +529,15 @@ function stepBigs(dt) {
       bigVsSoldiers(o, 6, 0.02);
       continue;
     }
-    o.z -= o.spd * dt; o.x = laneX(o.t, o.z);
+    const zp = o.z; o.z -= o.spd * dt; if (S.portc.length) portcStopBig(o, zp); o.x = laneX(o.t, o.z);
     if (S.mode && o.z < MZ_OUT) { o.dead = true; continue; }
-    bigVsSoldiers(o, giant ? 6 : 4, giant ? 0.03 : 0.13);
+    bigVsSoldiers(o, cart ? 8 : giant ? 6 : 4, cart ? 0.01 : giant ? 0.03 : 0.13);
     if (o.dead) continue;
     if (giant) {
       o.cd -= dt;
       if (o.cd <= 0 && countIn(S.B, o.x, o.z - 1.2, 3.7) >= 6) { o.st = 'smash'; o.tm = 0.55; ev('windup', o); }
     }
-    if (!S.mode && o.z <= WALLZ + 1.4 + o.r * 0.4) { o.dead = true; ev('bigwall', o); wallHit(giant ? 12 : 3, o.x); }
+    if (!S.mode && o.z <= WALLZ + 1.4 + o.r * 0.4) { o.dead = true; ev('bigwall', o); wallHit(giant ? 12 : cart ? 6 : 3, o.x); }
   }
   for (let i = bs.length - 1; i >= 0; i--) if (bs[i].dead) bs.splice(i, 1);
 }
@@ -554,12 +562,13 @@ function stepHero(o, dt) {
     return;
   }
   o.life -= dt;
+  const hz0 = o.z;
   const tgt = nearestRedBig(o, 10);
   let fighting = false;
   if (tgt) {
     const dx = tgt.x - o.x, dz = tgt.z - o.z, reach = o.r + tgt.r + 0.2;
     if (dx * dx + dz * dz < reach * reach) {
-      fighting = true; hurtBig(tgt, 110 * dt); o.hitT = (o.hitT || 0) - dt;
+      fighting = true; hurtBig(tgt, 110 * dt, o.x); o.hitT = (o.hitT || 0) - dt;
       // 行軍關：咬住對手，跟著牠一路退向隊伍（不然世界一捲，巨魔半秒就從大將身邊擦過去了）
       if (S.mode && !tgt.fixed) o.z = Math.max(MZ_REAR + 1, o.z - (S.sq.v + (tgt.st === 'smash' ? 0 : tgt.spd)) * dt);
       if (o.hitT <= 0) { o.hitT = 0.22; ev('herohit', (o.x + tgt.x) / 2, (o.z + tgt.z) / 2); }
@@ -569,6 +578,7 @@ function stepHero(o, dt) {
     }
   }
   if (!fighting) o.z += 5 * dt;
+  if (S.portc.length) portcStopBig(o, hz0);
   for (const g of S.rgates) if (g.alive && o.z > g.z - 1.6 && o.z < g.z + 2) { o.z = g.z - 1.6; o.fa = (o.fa || 0) + 30 * dt; while (o.fa >= 1) { o.fa--; hitRGate(g, 1, o.x); } }
   if (o.z > S.fz - 2.2) { o.z = S.fz - 2.2; if (S.fort.alive && (!S.mode || S.sq.siege)) { o.fa = (o.fa || 0) + 30 * dt; while (o.fa >= 1) { o.fa--; fortHit(1, o.x); } } }      // 行軍關要等全軍衝鋒才砍城門
   o.x = laneX(o.t, o.z);
@@ -638,6 +648,7 @@ function stepPeds(dt) {
     if (p.flash > 0) p.flash -= dt * 4; if (p.kick > 0) p.kick -= dt * 5;
     if (!p.built) { if (p.foe) stepFoePed(p, dt); continue; }
     if (p.kind === 'sluice') { startFlood(p); p.built = false; p.got = 0; p.need += p.step; continue; }
+    if (p.kind === 'winch' || p.kind === 'rod') { if (!p.done) { p.done = true; if (p.kind === 'winch') { const g = S.portc[p.gate || 0]; if (g) g.jam = true; } else if (S.storm) S.storm.rod = true; ev('pedon', p); } continue; }
     p.cool -= dt; if (p.cool > 0) continue;
     if (p.kind === 'ballista') {
       let tx = NaN, tz = NaN;
@@ -688,11 +699,12 @@ function stepProj(dt) {
           const k = blast(1, p.x, p.z, 3.4, 90, 1, 11); blastBigs(1, p.x, p.z, 3.4, 25);
           ev('boom', p.x, p.z, 3.4, k, 0);
         } else if (p.kind === 'bigshell') bigShellLand(p);
+        else if (p.kind === 'zap') zapLand(p);
         else if (p.rad > 0) {      // rad = 0 是丟出去之後才失效的砲彈（巨像倒下時還在空中的），落地什麼都不做
           // 敵方落石／魔王火球／敵軍砲彈（ball 是紅衣大砲，落地還會震傷城牆）
-          const k = blast(0, p.x, p.z, p.rad, 70, 1, 10); blastBigs(0, p.x, p.z, p.rad, 1);
+          const k = blast(0, p.x, p.z, p.rad, p.cap || 70, 1, 10); blastBigs(0, p.x, p.z, p.rad, 1);
           if (p.kind === 'ball') wallHit(p.wall || 2, p.x);
-          ev('boom', p.x, p.z, p.rad, k, p.kind === 'fire' ? 2 : p.kind === 'rock' ? 1 : 4);
+          ev('boom', p.x, p.z, p.rad, k, p.kind === 'fire' ? 2 : p.kind === 'rock' ? 1 : p.kind === 'volleyA' ? 5 : 4);
         }
       }
     }
@@ -750,7 +762,7 @@ function stepUlt(dt) {
     if (z <= zw && z >= u.z0 - 4) { killRed(j, 2, r.x[j], z, 0); u.killed++; frameK++; }
   }
   for (const b of S.bigs) {
-    if (b.team === 1 && !b.dead && !b.ulted && b.z <= zw && b.z >= u.z0 - 4) { b.ulted = true; hurtBig(b, b.maxHp * (b.kind === 'boss' || b.kind === 'dragon' || b.kind === 'colossus' ? 0.06 : 0.3)); }
+    if (b.team === 1 && !b.dead && !b.ulted && b.z <= zw && b.z >= u.z0 - 4) { b.ulted = true; hurtBig(b, b.maxHp * (b.kind === 'boss' || b.kind === 'dragon' || b.kind === 'colossus' || b.kind === 'hydra' ? 0.06 : 0.3)); }
   }
   if (p >= 1 || u.killed >= u.cap) { u.active = false; ev('ultend', u.killed); }
 }
@@ -762,13 +774,14 @@ function runScript(dt) {
     const e = sc[S.evi++];
     switch (e.f) {
       case 'wave': S.waves.push({ left: e.n, rate: e.n / (e.dur || 1), kind: e.kind === undefined ? 1 : e.kind, a: e.a === undefined ? -1 : e.a, b: e.b === undefined ? 1 : e.b }); if (e.say) ev('say', e.say, 1); break;
-      case 'brute': if (S.fort.dry || !S.fort.alive) break; for (let k = 0; k < e.n; k++) { spawnBrute(e.lane === undefined ? rnd() * 1.6 - 0.8 : e.lane); fortSpend(4); } if (e.say) ev('say', e.say, 1); break;
+      case 'brute': if (S.fort.dry || !S.fort.alive) break; for (let k = 0; k < e.n && !S.fort.dry; k++) { spawnBrute(e.lane === undefined ? rnd() * 1.6 - 0.8 : e.lane); fortSpend(4); } if (e.say) ev('say', e.say, 1); break;
       case 'giant': if (S.fort.dry || !S.fort.alive) break; spawnGiant(e.lane === undefined ? rnd() * 1.2 - 0.6 : e.lane); fortSpend(25); ev('say', e.say || '巨魔來襲', 1); break;
       case 'gold': ev('gold', addGate({ z: e.z, x: e.x, w: e.w || 4.4, m: e.m, gold: true, cap: e.cap, life: e.life || 14, amp: e.amp || 0, per: e.per || 5, ph: e.ph || 0 })); break;
       case 'flow': S.flow.rate = S.lv.flow * S.diff.flow * e.mul; if (e.shield !== undefined) S.flow.shield = e.shield; if (e.say) ev('say', e.say, 1); break;
       case 'cata': S.cata.iv = e.iv; S.cata.t = e.iv * 0.5; if (e.say) ev('say', e.say, 1); break;
       case 'say': ev('say', e.say, e.tone || 0); break;
       case 'twister': addTwister(e); if (e.say) ev('say', e.say, 1); break;
+      case 'cart': if (S.fort.dry || !S.fort.alive) break; for (let k = 0; k < (e.n || 1); k++) spawnCart(e.lane === undefined ? (k - ((e.n || 1) - 1) / 2) * 0.9 : e.lane); if (e.say) ev('say', e.say, 1); break;
     }
   }
   const f = S.flow, ft = S.fort, sg = S.surge, sdef = S.lv.surge;
@@ -826,7 +839,7 @@ function calcFrontMarch() {
   const need = Math.min(12, Math.max(4, (S.B.n / 3) | 0));
   let f = L;
   if (tot >= need) { let acc = 0; for (let g = 0; g < GH; g++) { acc += cnt[g]; if (acc >= need) { f = g + GZ0; break; } } }
-  for (const b of S.bigs) if (b.team === 1 && !b.dead && ((b.kind !== 'dragon' && b.kind !== 'colossus') || b.fixed) && b.z + b.r >= z0 && b.z - b.r < f) f = Math.max(Math.floor(b.z - b.r), q.siege ? 0 : Math.floor(z0));
+  for (const b of S.bigs) if (b.team === 1 && !b.dead && ((b.kind !== 'dragon' && b.kind !== 'colossus' && b.kind !== 'hydra') || b.fixed) && b.z + b.r >= z0 && b.z - b.r < f) f = Math.max(Math.floor(b.z - b.r), q.siege ? 0 : Math.floor(z0));
   S.front = f;
 }
 function calcFront() {
@@ -867,6 +880,9 @@ function simStep(dt) {
   } else S.endT += dt;
 
   if (S.wheel) stepWheel(dt);
+  if (S.portc.length) stepPortc(dt);
+  if (S.storm) stepStorm(dt);
+  if (S.portals.length) stepPortals(dt);
   stepGates(dt);
   if (S.wind) stepWind();
   stepBlue(dt);

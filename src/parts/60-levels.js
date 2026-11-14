@@ -435,5 +435,241 @@ const LEVELS = [
       { d: 670, t: 'gate', x: 0, w: 8, m: 2 },
       { d: 760, t: 'colossus' }
     ]
+  },
+  /* ===== 無雙篇（第十七關起）=====
+     portc = 千斤閘：z 位置、open / shut = 每個循環開幾秒、關幾秒、ph = 起始秒數；peds 的 winch = 絞盤（gate = 第幾道閘），奪下來那道閘就卡在上面
+     storm = 落雷：iv 秒一道、r 半徑、warn 預告幾秒；peds 的 rod = 避雷塔，奪下來以後雷只劈赤潮（每 ivRod 秒一道）
+     portals = 傳送陣：team 0 是我軍的（踩進去出現在 tz）、team 1 是赤潮的（每秒最多傳 cap 個到 tz；我軍送進 need 個就把它堵死）
+     script 的 cart = 盾車（cartHp = 血量）；行軍關的 fog = 毒霧（dps = 待在裡面每秒倒下的機率）、tower = 弓樓、chase = 追兵、barrel 的 rw: 'rear' = 回馬箭、hydra = 九頭蛇（headHp = 每顆頭的血） */
+  {
+    name: '千斤閘', tag: '鐵閘', tip: '隘道上的鐵閘會定時落下，敵我都過不去；把兵送進路邊的絞盤，就能把閘門卡在上面',
+    theme: 16, mus: 0, ultNeed: 1500, ultCap: 560, surge: { at: 30, every: 24, dur: 5, mul: 1.8, spd: 1.35 }, bruteHp: 36, fort: 4400, flow: 42, vC: 1.35, vP: 0.95, front0: 33, heroCd: 20, shield: 0.1, giantHp: 480,
+    road: { c: [[20, 0], [30, 0], [54, 0], [64, 2.5], [74, 0]], w: PLZ.concat([[27, 7.2], [58, 7.2], [68, 19], [112, 21]]) },
+    portc: [{ z: 36, open: 7, shut: 5, ph: 0 }, { z: 52, open: 6.5, shut: 5, ph: 3.5 }],
+    gates: [
+      { z: 6, x: -4.6, w: 5.4, m: 3 }, { z: 6, x: 4.6, w: 5.4, m: 2 },
+      { z: 13.5, x: 0, w: 6, m: 4, amp: 4.6, per: 8 }
+    ],
+    peds: [
+      { z: 31, side: -1, r: 1.7, kind: 'winch', gate: 0, need: 45 },
+      { z: 47, side: 1, r: 1.7, kind: 'winch', gate: 1, need: 70 },
+      { x: 8.9, z: 12, kind: 'ballista', need: 60 }
+    ],
+    script: [
+      { t: 3, f: 'say', say: '鐵閘會定時落下！閘門底下的人敵我都會被砸死' },
+      { t: 12, f: 'say', say: '把兵送進路邊的絞盤，就能把閘門卡在上面' },
+      { t: 18, f: 'brute', n: 4, say: '蠻兵出陣' },
+      { t: 28, f: 'gold', z: 10, x: 0, w: 4.4, m: 10, cap: 26, life: 12, amp: 6, per: 7 },
+      { t: 36, f: 'wave', n: 220, dur: 5, say: '狼騎突襲' },
+      { t: 46, f: 'giant', lane: 0.2 },
+      { t: 58, f: 'brute', n: 6 },
+      { t: 64, f: 'gold', z: 10, x: 0, w: 4.4, m: 10, cap: 26, life: 12, amp: 6, per: 6, ph: 0.5 },
+      { t: 72, f: 'giant', lane: -0.3 },
+      { t: 80, f: 'flow', mul: 1.25 },
+      { t: 88, f: 'wave', n: 280, dur: 5 },
+      { t: 94, f: 'giant' },
+      { t: 102, f: 'gold', z: 10, x: 0, w: 4.4, m: 12, cap: 26, life: 12, amp: 6, per: 6 },
+      { t: 110, f: 'brute', n: 8 }
+    ]
+  },
+  {
+    name: '毒霧林', tag: '毒霧', tip: '沼澤上的毒霧會飄來飄去，待在裡面兵會一直倒下；看準空隙鑽過去',
+    mode: 'march', theme: 17, mus: 2, ultNeed: 720, ultCap: 390, heroCd: 22, bruteHp: 30, giantHp: 320,
+    road: { c: [[0, 0]], w: [[0, 8]] }, start: 16, speed: 7.6, len: 660, fortN: 400, s3: 220, s2: 80,
+    track: [
+      { d: 36, t: 'barrel', x: -3.4, hp: 8, rw: 'troop', n: 12 }, { d: 36, t: 'barrel', x: 3.4, hp: 14, rw: 'bow' },
+      { d: 66, t: 'gate', x: -4.4, w: 6.2, add: 12, max: 40 }, { d: 66, t: 'gate', x: 4.4, w: 6.2, m: 2 },
+      { d: 94, t: 'fog', x: -3.6, w: 7, len: 14, say: '毒霧！待在裡面兵會一直倒下，從旁邊繞過去', lead: 44 },
+      { d: 122, t: 'pack', x: 3, w: 7, n: 40 },
+      { d: 150, t: 'fog', x: 3, w: 6, len: 12, amp: 3, per: 6 }, { d: 162, t: 'barrel', x: -3.6, hp: 16, rw: 'troop', n: 24 },
+      { d: 188, t: 'gate', x: 0, w: 5.6, m: 2, amp: 3, per: 6 },
+      { d: 214, t: 'fog', x: 0, w: 7, len: 16, amp: 4, per: 7, say: '毒霧在飄，看準空隙', lead: 40 }, { d: 222, t: 'pack', x: 0, w: 10, n: 60, run: 1 },
+      { d: 250, t: 'gate', x: -4.4, w: 6.2, add: -20, max: 20 }, { d: 250, t: 'gate', x: 4.4, w: 5.4, m: 3 },
+      { d: 278, t: 'brute', x: 0, n: 3, say: '蠻兵擋路' }, { d: 284, t: 'pack', x: 0, w: 11, n: 80 },
+      { d: 308, t: 'barrel', x: 0, hp: 50, rw: 'elite', elite: 'ballista', say: '射破木籠，放出連弩車', lead: 50, tone: 0 },
+      { d: 336, t: 'fog', x: -4.2, w: 7.6, len: 18 }, { d: 340, t: 'fog', x: 4.6, w: 5.6, len: 12, amp: 1.2, per: 5 },
+      { d: 368, t: 'gate', x: -4.4, w: 6.2, m: 2 }, { d: 368, t: 'gate', x: 4.4, w: 6.2, add: 40, max: 90 },
+      { d: 396, t: 'giant', x: -3 }, { d: 402, t: 'pack', x: 3.4, w: 6.5, n: 100 },
+      { d: 428, t: 'fog', x: 0, w: 6, len: 20, amp: 5, per: 8 },
+      { d: 456, t: 'barrel', x: -2.6, hp: 10, rw: 'tnt' }, { d: 456, t: 'barrel', x: 2.6, hp: 12, rw: 'tnt' }, { d: 460, t: 'pack', x: 0, w: 13, n: 300, den: 3 },
+      { d: 492, t: 'gate', x: 0, w: 4.6, m: 4, gold: true, cap: 80, amp: 3.6, per: 5.5 },
+      { d: 520, t: 'fog', x: -2, w: 9, len: 14, amp: 3, per: 6 },
+      { d: 552, t: 'pack', x: 0, w: 12, n: 120, run: 1, kind: 1, say: '狼騎突襲' },
+      { d: 584, t: 'gate', x: 0, w: 8, m: 2 },
+      { d: 660, t: 'fort', n: 400, rate: 60, shield: 0.1 }
+    ]
+  },
+  {
+    name: '雷雨谷', tag: '落雷', tip: '雷會劈在兵最密的地方，敵我都劈；奪下路邊的避雷塔，雷就只劈赤潮',
+    theme: 18, mus: 1, rain: true, ultNeed: 1550, ultCap: 580, surge: { at: 30, every: 25, dur: 5, mul: 1.8, spd: 1.35 }, bruteHp: 36, fort: 4600, flow: 44, vC: 1.35, vP: 0.95, front0: 33, heroCd: 20, shield: 0.12, giantHp: 500,
+    storm: { iv: 3.4, r: 2.8, warn: 1.3, ivRod: 2.2 },
+    road: { c: [[20, 0], [34, -4], [48, 4], [62, -1], [72, 0]], w: PLZ.concat([[27, 7], [57, 7], [68, 20], [112, 22]]) },
+    gates: [
+      { z: 6, x: -4.8, w: 5.4, m: 2 }, { z: 6, x: 4.8, w: 5.4, m: 3 },
+      { z: 13.5, x: 0, w: 5.8, m: 4, amp: 4.4, per: 7.5 }
+    ],
+    peds: [{ z: 40, side: 1, r: 1.8, kind: 'rod', need: 90 }, { x: -8.9, z: 14, kind: 'mortar', need: 110 }],
+    script: [
+      { t: 3, f: 'say', say: '雷雨要來了：地上亮起白圈就是雷要劈下來' },
+      { t: 14, f: 'say', say: '把兵送進右邊的避雷塔，雷就只劈赤潮' },
+      { t: 18, f: 'brute', n: 4, say: '蠻兵出陣' },
+      { t: 28, f: 'gold', z: 10, x: 0, w: 4.4, m: 10, cap: 26, life: 12, amp: 6, per: 7 },
+      { t: 38, f: 'wave', n: 220, dur: 5, say: '狼騎突襲' },
+      { t: 46, f: 'giant', lane: -0.2 },
+      { t: 58, f: 'brute', n: 6 },
+      { t: 64, f: 'gold', z: 10, x: 0, w: 4.4, m: 10, cap: 26, life: 12, amp: 6, per: 6, ph: 0.5 },
+      { t: 72, f: 'giant', lane: 0.3 },
+      { t: 80, f: 'flow', mul: 1.25 },
+      { t: 88, f: 'wave', n: 300, dur: 5 },
+      { t: 94, f: 'giant' },
+      { t: 102, f: 'gold', z: 10, x: 0, w: 4.4, m: 12, cap: 26, life: 12, amp: 6, per: 6 },
+      { t: 110, f: 'brute', n: 8 }
+    ]
+  },
+  {
+    name: '弓樓道', tag: '弓樓', tip: '橋邊的弓樓會朝隊伍放箭雨：看到紅圈就閃，靠過去對準它把它射倒',
+    mode: 'march', theme: 19, mus: 3, ultNeed: 740, ultCap: 400, heroCd: 22, bruteHp: 32, giantHp: 330,
+    road: { c: [[0, 0]], w: [[0, 8]] }, start: 16, speed: 7.6, len: 700, fortN: 420, s3: 300, s2: 100,
+    track: [
+      { d: 36, t: 'barrel', x: -3.4, hp: 8, rw: 'troop', n: 12 }, { d: 36, t: 'barrel', x: 3.4, hp: 14, rw: 'bow' },
+      { d: 66, t: 'gate', x: -4.4, w: 6.2, add: 12, max: 40 }, { d: 66, t: 'gate', x: 4.4, w: 6.2, m: 2 },
+      { d: 98, t: 'tower', side: -1, hp: 16, n: 2, say: '弓樓放箭！看到紅圈就閃，靠過去把它射倒', lead: 56 },
+      { d: 128, t: 'pack', x: 2.5, w: 7, n: 40 },
+      { d: 156, t: 'gate', x: 0, w: 5.6, m: 2, amp: 3, per: 6 },
+      { d: 186, t: 'tower', side: 1, hp: 22, n: 2 }, { d: 190, t: 'barrel', x: -3.6, hp: 16, rw: 'troop', n: 24 },
+      { d: 216, t: 'pack', x: 0, w: 10, n: 48, run: 1, say: '敵軍衝過來了' },
+      { d: 246, t: 'gate', x: -4.4, w: 6.2, add: -20, max: 20 }, { d: 246, t: 'gate', x: 4.4, w: 5.4, m: 3 },
+      { d: 276, t: 'tower', side: -1, hp: 26, n: 2 }, { d: 280, t: 'tower', side: 1, hp: 26, n: 2, ph: 0.9 },
+      { d: 306, t: 'brute', x: 0, n: 3, say: '蠻兵擋路' }, { d: 312, t: 'pack', x: 0, w: 11, n: 80 },
+      { d: 336, t: 'barrel', x: 0, hp: 60, rw: 'elite', elite: 'mortar', say: '射破木籠，放出轟天砲', lead: 50, tone: 0 },
+      { d: 366, t: 'gate', x: -4.4, w: 6.2, m: 2 }, { d: 366, t: 'gate', x: 4.4, w: 6.2, add: 40, max: 90 },
+      { d: 394, t: 'tower', side: 1, hp: 30, n: 3 }, { d: 398, t: 'giant', x: -3 }, { d: 404, t: 'pack', x: 3.4, w: 6.5, n: 100 },
+      { d: 434, t: 'barrel', x: -3.6, hp: 30, rw: 'bow' }, { d: 434, t: 'barrel', x: 3.6, hp: 36, rw: 'troop', n: 40 },
+      { d: 462, t: 'tower', side: -1, hp: 33, n: 2 }, { d: 468, t: 'tower', side: 1, hp: 33, n: 2, ph: 0.9 },
+      { d: 496, t: 'barrel', x: -2.6, hp: 10, rw: 'tnt' }, { d: 496, t: 'barrel', x: 2.6, hp: 12, rw: 'tnt' }, { d: 500, t: 'pack', x: 0, w: 13, n: 300, den: 3 },
+      { d: 530, t: 'gate', x: 0, w: 4.6, m: 4, gold: true, cap: 80, amp: 3.6, per: 5.5 },
+      { d: 560, t: 'tower', side: -1, hp: 39, n: 4, iv: 4 },
+      { d: 590, t: 'pack', x: 0, w: 12, n: 140, run: 1, kind: 1, say: '狼騎突襲' },
+      { d: 620, t: 'gate', x: 0, w: 8, m: 2 },
+      { d: 700, t: 'fort', n: 420, rate: 60, shield: 0.12 }
+    ]
+  },
+  {
+    name: '奇門陣', tag: '傳送陣', tip: '藍色的陣把兵直接送到敵城前；赤潮也有紅色的陣會跳到城下，把兵送進紅陣把它堵死',
+    theme: 20, mus: 4, ultNeed: 1600, ultCap: 600, surge: { at: 30, every: 25, dur: 5, mul: 1.8, spd: 1.35 }, bruteHp: 36, fort: 4400, flow: 38, vC: 1.3, vP: 0.95, front0: 33, heroCd: 20, shield: 0.12, giantHp: 500,
+    road: { c: [[20, 0], [34, 3], [48, -3], [62, 1], [72, 0]], w: PLZ.concat([[27, 7.2], [58, 7.2], [68, 20], [112, 22]]) },
+    portals: [
+      { team: 0, z: 19, x: -4.6, r: 1.8, tz: 78 },
+      { team: 1, z: 44, r: 2.4, tz: 24, lanes: [-0.55, 0.1, 0.6], every: 12, need: 36, cap: 3, start: 20 }
+    ],
+    gates: [
+      { z: 6, x: -4.6, w: 5.4, m: 3 }, { z: 6, x: 4.6, w: 5.4, m: 2 },
+      { z: 13, x: 0, w: 6, m: 4, amp: 4.4, per: 8 }
+    ],
+    peds: [{ x: 8.9, z: 10, kind: 'ballista', need: 60 }],
+    script: [
+      { t: 3, f: 'say', say: '左邊藍色的陣會把兵直接送到敵城前' },
+      { t: 17, f: 'say', say: '紅色的陣快開了：赤潮會從那裡跳到城下，送兵進去把它堵死' },
+      { t: 18, f: 'brute', n: 4, say: '蠻兵出陣' },
+      { t: 28, f: 'gold', z: 10, x: 0, w: 4.4, m: 10, cap: 26, life: 12, amp: 6, per: 7 },
+      { t: 38, f: 'wave', n: 220, dur: 5, say: '狼騎突襲' },
+      { t: 46, f: 'giant', lane: 0.2 },
+      { t: 58, f: 'brute', n: 6 },
+      { t: 64, f: 'gold', z: 10, x: 0, w: 4.4, m: 10, cap: 26, life: 12, amp: 6, per: 6, ph: 0.5 },
+      { t: 72, f: 'giant', lane: -0.3 },
+      { t: 80, f: 'flow', mul: 1.25 },
+      { t: 88, f: 'wave', n: 280, dur: 5 },
+      { t: 94, f: 'giant' },
+      { t: 102, f: 'gold', z: 10, x: 0, w: 4.4, m: 12, cap: 26, life: 12, amp: 6, per: 6 },
+      { t: 110, f: 'brute', n: 8 }
+    ]
+  },
+  {
+    name: '追兵', tag: '追兵', tip: '敵騎會從背後追上來咬隊尾；撿回馬箭讓後排往後射，或穿過疾行門甩掉他們',
+    mode: 'march', theme: 21, mus: 2, ultNeed: 760, ultCap: 410, heroCd: 22, bruteHp: 32, giantHp: 340,
+    road: { c: [[0, 0]], w: [[0, 8]] }, start: 16, speed: 7.8, len: 680, fortN: 420, s3: 520, s2: 200,
+    track: [
+      { d: 34, t: 'barrel', x: -3.4, hp: 8, rw: 'troop', n: 12 }, { d: 34, t: 'barrel', x: 3.4, hp: 14, rw: 'bow' },
+      { d: 64, t: 'gate', x: -4.4, w: 6.2, add: 12, max: 40 }, { d: 64, t: 'gate', x: 4.4, w: 6.2, m: 2 },
+      { d: 92, t: 'barrel', x: 0, hp: 14, rw: 'rear', say: '回馬箭：射破它，後排的兵會往後放箭', lead: 50, tone: 0 },
+      { d: 122, t: 'chase', n: 24, say: '追兵從背後殺來了！', lead: 1 },
+      { d: 146, t: 'pack', x: 0, w: 8, n: 40 },
+      { d: 174, t: 'gate', x: -4.4, w: 6.2, rush: 1.6, dur: 4.5, say: '疾行門：穿過去全隊加速，甩掉追兵', lead: 46, tone: 0 }, { d: 174, t: 'gate', x: 4.4, w: 6.2, m: 2 },
+      { d: 204, t: 'barrel', x: -3, hp: 22, rw: 'troop', n: 28 }, { d: 204, t: 'barrel', x: 3.4, hp: 20, rw: 'bow' },
+      { d: 234, t: 'chase', n: 40, say: '又有追兵！', lead: 1 },
+      { d: 258, t: 'pack', x: 0, w: 10, n: 60, run: 1 },
+      { d: 286, t: 'gate', x: -4.4, w: 6.2, add: -20, max: 20 }, { d: 286, t: 'gate', x: 4.4, w: 5.4, m: 3 },
+      { d: 314, t: 'barrel', x: 3.6, hp: 30, rw: 'rear' },
+      { d: 334, t: 'brute', x: 0, n: 3, say: '蠻兵擋路' }, { d: 340, t: 'pack', x: 0, w: 11, n: 80 },
+      { d: 364, t: 'chase', n: 56 }, { d: 372, t: 'gate', x: 0, w: 6.4, rush: 1.6, dur: 5 },
+      { d: 398, t: 'barrel', x: 0, hp: 50, rw: 'elite', elite: 'ballista', say: '射破木籠，放出連弩車', lead: 50, tone: 0 },
+      { d: 428, t: 'gate', x: -4.4, w: 6.2, m: 2 }, { d: 428, t: 'gate', x: 4.4, w: 6.2, add: 40, max: 90 },
+      { d: 454, t: 'giant', x: -3 }, { d: 460, t: 'pack', x: 3.4, w: 6.5, n: 100 },
+      { d: 488, t: 'chase', n: 72, say: '大批追兵！', lead: 1 },
+      { d: 518, t: 'barrel', x: -2.6, hp: 10, rw: 'tnt' }, { d: 518, t: 'barrel', x: 2.6, hp: 12, rw: 'tnt' }, { d: 522, t: 'pack', x: 0, w: 13, n: 300, den: 3 },
+      { d: 552, t: 'gate', x: 0, w: 4.6, m: 4, gold: true, cap: 80, amp: 3.6, per: 5.5 },
+      { d: 578, t: 'chase', n: 88 }, { d: 588, t: 'pack', x: 0, w: 12, n: 120, run: 1, kind: 1, say: '前後夾擊！', lead: 50 },
+      { d: 618, t: 'gate', x: 0, w: 8, m: 2 },
+      { d: 680, t: 'fort', n: 420, rate: 60, shield: 0.12 }
+    ]
+  },
+  {
+    name: '鐵壁', tag: '盾車', tip: '敵軍推出盾車，正面撞上去只扣一點；蓋好連弩車、轟天砲，讓大將去砍盾車',
+    theme: 22, mus: 3, ultNeed: 1650, ultCap: 620, surge: { at: 30, every: 24, dur: 5, mul: 1.8, spd: 1.35 }, bruteHp: 38, fort: 4800, flow: 44, vC: 1.3, vP: 0.95, front0: 33, heroCd: 18, shield: 0.12, giantHp: 520, cartHp: 120,
+    road: { c: [[20, 0], [36, -3], [52, 3], [64, 0]], w: PLZ.concat([[27, 7.6], [57, 7.6], [68, 20], [112, 22]]) },
+    gates: [
+      { z: 6, x: -4.6, w: 5.4, m: 2 }, { z: 6, x: 4.6, w: 5.4, m: 3 },
+      { z: 13.5, x: 0, w: 6, m: 4, amp: 4.6, per: 8 }
+    ],
+    peds: [{ x: 8.9, z: 9, kind: 'ballista', need: 45 }, { x: -8.9, z: 13, kind: 'ballista', need: 70 }, { x: 8.9, z: 17, kind: 'mortar', need: 110 }],
+    script: [
+      { t: 4, f: 'say', say: '蓋好連弩車：盾車正面撞不動，要靠砲塔和大將' },
+      { t: 10, f: 'cart', n: 1, say: '盾車推出來了' },
+      { t: 22, f: 'brute', n: 3 },
+      { t: 26, f: 'cart', n: 2 },
+      { t: 32, f: 'gold', z: 10, x: 0, w: 4.4, m: 10, cap: 26, life: 12, amp: 6, per: 7 },
+      { t: 40, f: 'wave', n: 220, dur: 5, say: '狼騎突襲' },
+      { t: 44, f: 'cart', n: 2 },
+      { t: 54, f: 'giant', lane: 0.2 },
+      { t: 60, f: 'cart', n: 3, say: '盾車陣！' },
+      { t: 66, f: 'gold', z: 10, x: 0, w: 4.4, m: 10, cap: 26, life: 12, amp: 6, per: 6, ph: 0.5 },
+      { t: 78, f: 'cart', n: 2 }, { t: 80, f: 'flow', mul: 1.25 },
+      { t: 90, f: 'wave', n: 280, dur: 5 },
+      { t: 96, f: 'cart', n: 3 },
+      { t: 104, f: 'gold', z: 10, x: 0, w: 4.4, m: 12, cap: 26, life: 12, amp: 6, per: 6 },
+      { t: 112, f: 'cart', n: 3 }, { t: 114, f: 'giant' }
+    ]
+  },
+  {
+    name: '九頭蛇', tag: '決戰', tip: '九頭蛇的三顆頭各守一條路線：站到牠面前才打得到牠，牠也專朝那一條噴毒',
+    mode: 'march', theme: 23, mus: 4, ultNeed: 900, ultCap: 460, heroCd: 20, bruteHp: 34, giantHp: 360,
+    road: { c: [[0, 0]], w: [[0, 8]] }, start: 18, speed: 8, len: 780, fortN: 0, s3: 1200, s2: 500, boss: 'hydra', headHp: 750,
+    track: [
+      { d: 34, t: 'barrel', x: -3.6, hp: 10, rw: 'troop', n: 20 }, { d: 34, t: 'barrel', x: 3.6, hp: 12, rw: 'bow' },
+      { d: 62, t: 'gate', x: -4.4, w: 6.2, add: 20, max: 60 }, { d: 62, t: 'gate', x: 4.4, w: 6.2, m: 2 },
+      { d: 92, t: 'fog', x: 3.6, w: 7, len: 14 },
+      { d: 120, t: 'tower', side: -1, hp: 30, n: 2 },
+      { d: 142, t: 'pack', x: 2, w: 9, n: 40 },
+      { d: 166, t: 'barrel', x: 0, hp: 16, rw: 'rear' },
+      { d: 192, t: 'chase', n: 40, say: '追兵從背後殺來了！', lead: 1 },
+      { d: 214, t: 'gate', x: -4.4, w: 6.2, rush: 1.6, dur: 4.5 }, { d: 214, t: 'gate', x: 4.4, w: 6.2, m: 2 },
+      { d: 242, t: 'fog', x: -4.4, w: 5.6, len: 12 },
+      { d: 268, t: 'tower', side: 1, hp: 32, n: 2 }, { d: 272, t: 'pack', x: 0, w: 11, n: 50, run: 1 },
+      { d: 300, t: 'gate', x: -4.4, w: 6.2, add: -15, max: 15 }, { d: 300, t: 'gate', x: 4.4, w: 6.2, m: 3 },
+      { d: 328, t: 'brute', x: 0, n: 3, say: '蠻兵擋路' }, { d: 334, t: 'pack', x: 0, w: 12, n: 90 },
+      { d: 358, t: 'barrel', x: 0, hp: 70, rw: 'elite', elite: 'mortar', say: '射破木籠，放出轟天砲', lead: 50, tone: 0 },
+      { d: 386, t: 'chase', n: 50 },
+      { d: 412, t: 'fog', x: 0, w: 5, len: 14, amp: 5, per: 8 },
+      { d: 442, t: 'gate', x: -4.4, w: 6.2, m: 2 }, { d: 442, t: 'gate', x: 4.4, w: 6.2, add: 60, max: 120 },
+      { d: 470, t: 'giant', x: 0 }, { d: 478, t: 'pack', x: 0, w: 12, n: 110, run: 1 },
+      { d: 502, t: 'tower', side: -1, hp: 40, n: 2 }, { d: 506, t: 'tower', side: 1, hp: 40, n: 2, ph: 0.9 },
+      { d: 534, t: 'barrel', x: -3, hp: 12, rw: 'tnt' }, { d: 534, t: 'barrel', x: 3, hp: 12, rw: 'tnt' }, { d: 538, t: 'pack', x: 0, w: 13, n: 320, den: 3 },
+      { d: 566, t: 'gate', x: 0, w: 4.6, m: 5, gold: true, cap: 90, amp: 4.2, per: 5.5 },
+      { d: 596, t: 'chase', n: 70 }, { d: 604, t: 'pack', x: 0, w: 12, n: 120, run: 1, kind: 1, say: '前後夾擊！', lead: 50 },
+      { d: 632, t: 'fog', x: 0, w: 5, len: 12, amp: 4, per: 6 },
+      { d: 660, t: 'gate', x: -4.4, w: 6.2, m: 2 }, { d: 660, t: 'gate', x: 4.4, w: 6.2, add: 80, max: 160 },
+      { d: 692, t: 'gate', x: 0, w: 8, m: 2 },
+      { d: 780, t: 'hydra' }
+    ]
   }
 ];

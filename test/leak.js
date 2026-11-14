@@ -25,9 +25,10 @@ function play(G, li, cfg, tMax) {
   return `${S.state} t=${S.time.toFixed(3)} k=${S.kills} lost=${S.lost} B=${S.B.n} R=${S.R.n} wall=${S.wallHp} fort=${S.fort.hp} surv=${S.survive} h=${h} ev=${Object.keys(ev).sort().map((k) => k + ev[k]).join(',')}`;
 }
 const NL = fresh().LEVELS.length; let runs = 0, bad = 0;
-for (const cfg of CFG) {
+const PREV = process.env.LEAK_A ? process.env.LEAK_A.split(',').map((x) => +x - 1) : [23, 22, 20, 18, 16, 15, 14, 12, 10, 9, 0];
+for (const cfg of process.env.LEAK_CFG ? [CFG[+process.env.LEAK_CFG]] : CFG) {
   const base = []; for (let b = 0; b < NL; b++) base.push(play(fresh(), b, cfg));
-  for (const a of [15, 14, 12, 10, 9, 0]) for (const cut of [0, 31]) {      // cut：前一關打到第 31 秒就丟下（崩塌、巨輪城、風、砲台、火線可能正在進行）
+  for (const a of PREV) for (const cut of [0, 31]) {      // cut：前一關打到第 31 秒就丟下（崩塌、巨輪城、風、砲台、火線可能正在進行）
     for (let b = 0; b < NL; b++) {
       const G = fresh(); play(G, a, cfg, cut || 0); const got = play(G, b, cfg); runs++;
       if (got !== base[b]) { bad++; if (bad <= 8) console.log(`DIFF 先打第 ${a + 1} 關${cut ? '（中途放棄）' : ''}再打第 ${b + 1} 關 [${cfg.bot} 難度${cfg.diff} 強化${cfg.up}]\n   全新：${base[b]}\n   之後：${got}`); }

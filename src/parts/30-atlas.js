@@ -555,6 +555,81 @@ function artHelm(c, blue) {
 function artCurtain(c) { c.fillStyle = lg(c, 0, 0, 0, 64, [0, 'rgba(255,255,255,.62)', 0.55, 'rgba(255,255,255,.26)', 1, 'rgba(255,255,255,.04)']); c.fillRect(0, 0, 16, 64); }
 function artSoldierIcon(c) { c.fillStyle = '#fff'; ell(c, 16, 9, 6.5, 6.5); c.fill(); rrect(c, 8, 15, 16, 15, 6); c.fill(); }
 
+/* ---------- 無雙篇 ---------- */
+function artWinch(c) {
+  // 128×112：絞盤（大木輪＋鐵鏈），擺在砲位上
+  shadow(c, 64, 102, 54, 8);
+  c.beginPath(); c.rect(18, 70, 92, 30); fs(c, lg(c, 0, 70, 0, 100, [0, '#8a5a2b', 1, '#3a2412']), '#1c0f06', 3);
+  for (const x of [26, 102]) { c.beginPath(); c.rect(x - 7, 26, 14, 48); fs(c, lg(c, x - 7, 0, x + 7, 0, [0, '#5c3a1c', 0.5, '#a8743e', 1, '#4a2c12']), '#1c0f06', 3); }
+  ell(c, 64, 44, 34, 34); fs(c, '#3a220e', '#1c0f06', 3);
+  ell(c, 64, 44, 27, 27); fs(c, lg(c, 30, 0, 98, 0, [0, '#6f4520', 0.5, '#b07a40', 1, '#5c3a1c']), '#24130a', 2.5);
+  c.strokeStyle = '#3a220e'; c.lineWidth = 6; for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI; c.beginPath(); c.moveTo(64 - Math.cos(a) * 34, 44 - Math.sin(a) * 34); c.lineTo(64 + Math.cos(a) * 34, 44 + Math.sin(a) * 34); c.stroke(); }
+  ell(c, 64, 44, 8, 8); fs(c, '#98a2b3', '#14161c', 2.5);
+  c.strokeStyle = '#98a2b3'; c.lineWidth = 5; for (let k = 0; k < 6; k++) { ell(c, 64 + (k - 2.5) * 9, 82, 4.5, 3.4); c.stroke(); }
+}
+function artRod(c) {
+  // 80×224：避雷塔（石座、鐵柱、頂上的銅尖）
+  shadow(c, 40, 216, 34, 7);
+  poly(c, [10, 214, 70, 214, 60, 170, 20, 170]); fs(c, lg(c, 10, 0, 70, 0, [0, '#6e6a62', 0.5, '#a8a294', 1, '#5a564e']), '#24221e', 3);
+  c.strokeStyle = 'rgba(30,28,24,.4)'; c.lineWidth = 2; for (const y of [184, 198]) { c.beginPath(); c.moveTo(14, y); c.lineTo(66, y); c.stroke(); }
+  c.beginPath(); c.rect(33, 40, 14, 132); fs(c, lg(c, 33, 0, 47, 0, [0, '#2b303b', 0.5, '#7e8796', 1, '#22262e']), '#0a0b0e', 2.5);
+  for (const y of [70, 110, 150]) { c.beginPath(); c.rect(27, y, 26, 6); fs(c, '#5b6372', '#0a0b0e', 2); }
+  poly(c, [40, 4, 49, 42, 31, 42]); fs(c, lg(c, 31, 0, 49, 0, [0, '#e0b066', 0.5, '#fff2b0', 1, '#a06e2e']), '#3a2203', 2.5);
+  c.strokeStyle = '#e0b066'; c.lineWidth = 3; for (const sd of [-1, 1]) { c.beginPath(); c.moveTo(40, 30); c.lineTo(40 + sd * 18, 18); c.stroke(); }
+}
+function artTower(c) {
+  // 160×232：敵軍弓樓（木架、箭樓、紅旗）
+  shadow(c, 80, 222, 64, 9);
+  c.lineCap = 'round';
+  for (const [x0, x1] of [[34, 52], [126, 108]]) { c.strokeStyle = '#2a1608'; c.lineWidth = 13; c.beginPath(); c.moveTo(x0, 220); c.lineTo(x1, 92); c.stroke(); c.strokeStyle = '#8a5a2b'; c.lineWidth = 8; c.beginPath(); c.moveTo(x0, 220); c.lineTo(x1, 92); c.stroke(); }
+  c.strokeStyle = '#6f4520'; c.lineWidth = 6; for (const y of [130, 175]) { c.beginPath(); c.moveTo(42, y + 14); c.lineTo(118, y - 6); c.moveTo(42, y - 6); c.lineTo(118, y + 14); c.stroke(); }
+  c.beginPath(); c.rect(30, 62, 100, 40); fs(c, lg(c, 0, 62, 0, 102, [0, '#a8743e', 1, '#5c3a1c']), '#24130a', 3.5);
+  c.fillStyle = '#1a0e06'; for (const x of [48, 72, 96]) { c.beginPath(); c.rect(x, 72, 14, 18); c.fill(); }
+  poly(c, [20, 66, 80, 26, 140, 66]); fs(c, lg(c, 0, 26, 0, 66, [0, '#d8281f', 1, '#7a1410']), '#2a0606', 3.5);
+  c.strokeStyle = '#3a2412'; c.lineWidth = 3; c.beginPath(); c.moveTo(80, 28); c.lineTo(80, 4); c.stroke();
+  poly(c, [80, 4, 110, 11, 80, 19]); fs(c, '#e8392f', '#5a0d10', 2);
+}
+function artCart(c) {
+  // 224×160：盾車（正面一整排包鐵大盾、尖刺、兩個輪子）
+  shadow(c, 112, 150, 104, 10);
+  for (const x of [44, 180]) { ell(c, x, 128, 22, 22); fs(c, '#2b303b', '#0a0b0e', 3); ell(c, x, 128, 15, 15); fs(c, '#6f4520', '#24130a', 2.5); ell(c, x, 128, 5, 5); fs(c, '#98a2b3'); }
+  rrect(c, 12, 30, 200, 92, 10); fs(c, lg(c, 0, 30, 0, 122, [0, '#8a5a2b', 0.5, '#6f4520', 1, '#3a2412']), '#1c0f06', 4);
+  c.strokeStyle = 'rgba(28,15,6,.6)'; c.lineWidth = 3; for (let x = 40; x < 212; x += 28) { c.beginPath(); c.moveTo(x, 34); c.lineTo(x, 118); c.stroke(); }
+  for (const y of [46, 98]) { c.beginPath(); c.rect(12, y, 200, 9); fs(c, lg(c, 0, y, 0, y + 9, [0, '#c6ccd8', 1, '#4d5563']), '#14161c', 2); }
+  c.fillStyle = '#98a2b3'; for (let x = 24; x < 212; x += 28) for (const y of [50.5, 102.5]) { ell(c, x, y, 3, 3); c.fill(); }
+  for (let x = 26; x < 210; x += 28) { poly(c, [x - 7, 30, x, 6, x + 7, 30]); fs(c, lg(c, 0, 6, 0, 30, [0, '#f4fbff', 1, '#7e8796']), '#14161c', 2); }
+  ell(c, 112, 76, 20, 20); fs(c, rg(c, 106, 70, 3, 20, [0, '#ff8a70', 1, '#8f1418']), '#2a0606', 3);
+  poly(c, [112, 62, 118, 74, 112, 90, 106, 74]); fs(c, '#ffd35a', '#3a2203', 1.5);
+}
+
+function artHydraHead(c) {
+  // 128×128：九頭蛇的蛇頭（正面朝下看著隊伍）
+  c.translate(64, 64);
+  poly(c, [-40, -34, -20, -54, 20, -54, 40, -34, 50, 6, 30, 44, 0, 56, -30, 44, -50, 6]); fs(c, lg(c, 0, -54, 0, 56, [0, '#4f9a3a', 0.55, '#2f6a24', 1, '#18361a']), '#0b1a0c', 4);
+  c.fillStyle = 'rgba(190,240,130,.35)'; for (const [x, y] of [[-22, -30], [0, -40], [22, -30], [-12, -14], [12, -14]]) { ell(c, x, y, 7, 5); c.fill(); }
+  for (const sd of [-1, 1]) {
+    poly(c, [sd * 12, -2, sd * 38, -14, sd * 34, 6]); fs(c, '#ffe14a', '#3a2203', 2.5);
+    c.fillStyle = '#120806'; poly(c, [sd * 25, -11, sd * 28, -9, sd * 26, 2, sd * 23, 0]); c.fill();
+    poly(c, [sd * 34, -40, sd * 52, -64, sd * 40, -34]); fs(c, '#d6c48a', '#3a2a10', 2);
+  }
+  poly(c, [-26, 28, 26, 28, 18, 46, -18, 46]); fs(c, '#5a0d10', '#1a0405', 2.5);
+  c.fillStyle = '#f4f0e0'; for (const sd of [-1, 1]) { poly(c, [sd * 18, 28, sd * 12, 28, sd * 15, 44]); c.fill(); }
+  c.fillStyle = '#ff6a7a'; poly(c, [-3, 40, 3, 40, 6, 54, 0, 50, -6, 54]); c.fill();
+}
+function artHydraNeck(c) {
+  // 64×64：蛇頸的一節
+  ell(c, 32, 32, 28, 28); fs(c, rg(c, 24, 22, 4, 30, [0, '#6fbf4c', 0.6, '#2f6a24', 1, '#163212']), '#0b1a0c', 3);
+  c.fillStyle = 'rgba(220,240,150,.5)'; ell(c, 32, 44, 15, 9); c.fill();
+}
+function artHydraBody(c) {
+  // 288×192：九頭蛇盤在路上的身體（一圈圈蛇身）
+  shadow(c, 144, 176, 136, 14);
+  const coil = (x, y, rx, ry) => { ell(c, x, y, rx, ry); fs(c, lg(c, 0, y - ry, 0, y + ry, [0, '#5aa840', 0.5, '#2f6a24', 1, '#142c10']), '#0b1a0c', 4); c.strokeStyle = 'rgba(200,240,140,.25)'; c.lineWidth = 3; ell(c, x, y - ry * 0.25, rx * 0.8, ry * 0.5); c.stroke(); };
+  coil(144, 150, 128, 28); coil(144, 116, 104, 26); coil(144, 84, 78, 24);
+  c.fillStyle = 'rgba(230,210,120,.7)'; for (let k = 0; k < 9; k++) { ell(c, 52 + k * 23, 158, 7, 4); c.fill(); }
+  for (let k = 0; k < 7; k++) { poly(c, [92 + k * 18, 64, 100 + k * 18, 42, 108 + k * 18, 64]); fs(c, '#d6c48a', '#3a2a10', 2); }
+}
+
 /* ---------- 數字字形 ---------- */
 const GLYPHS = '0123456789×÷+-%,/!K»';
 const GL = {};        // 字 → sprite
@@ -615,6 +690,10 @@ function buildAtlas() {
   art('batBase', 176, 120, 176, 120, artBatBase).ay = 0.62; art('batGun', 96, 128, 96, 128, artBatGun); art('bigcan', 224, 224, 224, 224, artBigCannon);
   art('wheel', 96, 96, 96, 96, artWheel); art('boulder', 128, 128, 128, 128, artBoulder); art('iceblk', 96, 96, 96, 96, artIceBlock); art('jum', 160, 96, 160, 96, artJuma);
   art('postV', 48, 176, 48, 176, (c) => artPost(c, '#2fbf7a', '#14704a', '#c8ffe0')); art('beamV', 256, 72, 256, 72, (c) => artBeam(c, '#22b06c', '#9bf0c4', '#0e6a40')); art('rpostW', 32, 96, 32, 96, (c) => artRailPost(c, '#3a2410', '#a8743e', '#e8c890', '#8a5a2a')); art('flagR', 48, 96, 48, 96, (c) => artFlag(c, '#e8392f', '#ff8a70', '#a01818')); art('flagB', 48, 96, 48, 96, (c) => artFlag(c, '#2f7bff', '#9fd0ff', '#1b46b8'));
+  newRow();
+  // 無雙篇
+  art('winch', 128, 112, 128, 112, artWinch).ay = 0.92; art('rod', 80, 224, 80, 224, artRod).ay = 0.97; art('tower', 160, 232, 160, 232, artTower).ay = 0.96; art('cart', 224, 160, 224, 160, artCart).ay = 0.94;
+  art('hyH', 128, 128, 128, 128, artHydraHead).ay = 0.5; art('hyN', 64, 64, 64, 64, artHydraNeck).ay = 0.5; art('hyB', 288, 192, 288, 192, artHydraBody).ay = 0.92;
   newRow();
   artGlyphs();
   return cv;

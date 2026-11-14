@@ -1,6 +1,6 @@
 /* ===== 54-trek: 天下篇行軍關（第十二、十四、十六關）的新機關 =====
    track 裡除了會佔位置的東西，還有「走到這裡就發生」的事件（volley 投石、strafe 赤龍俯衝……），一律排進 S.evq。 */
-const MARCH_EVT = { strafe: 1, volley: 1, aval: 1, boulder: 1 };
+const MARCH_EVT = { strafe: 1, volley: 1, aval: 1, boulder: 1, chase: 1 };
 // 事件提早多遠觸發：滾石從視野最遠處（跟其他東西一樣在 MZ_SPAWN 附近）出現、滾一段路，才會在 d 附近碰到隊伍
 const ROLL_Z = 166, EVT_LEAD = { boulder: 82 };
 function marchEvent(e) {
@@ -8,6 +8,7 @@ function marchEvent(e) {
   else if (e.t === 'volley') rockVolley(e);
   else if (e.t === 'aval') avalanche(e);
   else if (e.t === 'boulder') addRoll(e, ROLL_Z);
+  else if (e.t === 'chase') chaseEvent(e);
 }
 
 /* ---------- 落石峽（第十二關）----------

@@ -121,7 +121,7 @@ button:focus-visible { outline: 3px solid var(--gold-lt); outline-offset: 2px; }
 /* 天下篇一排六關：字和星星縮小一點，窄螢幕才排得下 */
 .lvls.six { gap: 6px; } .lvls.six .lv { min-width: 0; } .lvls.six .lv b { font-size: 22px; } .lvls.six .lv .stars { font-size: 9px; letter-spacing: 0; }
 /* 篇章分頁：一次只顯示一篇的關卡 */
-.chaps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; max-width: 420px; }
+.chaps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; max-width: 420px; }
 .chaps button { position: relative; min-height: 38px; padding: 4px 2px 5px; font-weight: 900; font-size: 15px; letter-spacing: .16em; text-indent: .16em; color: var(--mute); background: var(--line); --cut: 7px; line-height: 1.15; }
 .chaps button::before { content: ""; position: absolute; inset: 2px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); clip-path: inherit; }
 .chaps button > * { position: relative; }

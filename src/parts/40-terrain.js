@@ -79,6 +79,47 @@ const THEMES = [
     abyss: ['#3a2a5a', '#1c1238', '#070414'], fade: '14,8,30', fort: ['#5a4a6a', '#3a2c48', '#1c1424'], deco: 10, sky: 'void',
     deck: ['#d9d0c4', '#b4aa9c'], curb: '#5a3226', lane: 'rgba(255,215,90,.14)', seam: [70, 50, 34, 70], rail: '#d23a2e', railDk: '#5a1210',
     arch: ['#c8372c', '#21456a', '#2f2a3a', '#ffd35a'], islet: ['#4a3a5a', '#24183a', '#3c2e4e', '#120a1c'], foam: [255, 200, 110, 46], seamGap: 4, post: 'rpostG'
+  },
+  /* ----- 無雙篇 ----- */
+  { // 16 千斤閘：晨霧裡的石砌關隘
+    abyss: ['#e6eef2', '#a9bcc6', '#4f6674'], road: '#c9c2b2', roadFar: '#dcd7cb', band: 'rgba(40,50,60,.08)',
+    plaza: '#bdb6a6', rim: '#8a9086', rimDk: '#565c55', cliffT: '#8f9590', cliffB: '#3e4648', fade: '70,90,104',
+    fort: ['#8e9298', '#5e6268', '#363a40'], deco: 2, sky: 'mist'
+  },
+  { // 17 毒霧林：沼澤上的木棧橋
+    abyss: ['#b8d69a', '#4f7a48', '#14281a'], fade: '20,40,26', fort: ['#7a8a66', '#4e5c42', '#2a3424'], deco: 6, sky: 'river',
+    deck: ['#9a8462', '#7a6648'], curb: '#3a3020', lane: 'rgba(200,255,170,.08)', seam: [40, 30, 14, 110], rail: '#6a7a3a', railDk: '#2a3214',
+    arch: ['#5a6a3a', '#3a4a2a', '#2a3020', '#c8e070'], islet: ['#6a9a4a', '#3a6a2a', '#5a5a3a', '#1e2a14'], foam: [190, 230, 160, 40], seamGap: 1.8, post: 'rpostW'
+  },
+  { // 18 雷雨谷：暴雨中的黑色山谷
+    abyss: ['#7c8a96', '#3e4a56', '#141a22'], road: '#8c8a84', roadFar: '#a4a29c', band: 'rgba(10,16,24,.10)',
+    plaza: '#88867e', rim: '#5e6a5a', rimDk: '#343c32', cliffT: '#5c6670', cliffB: '#20262e', fade: '20,28,38',
+    fort: ['#6e747c', '#464c54', '#24282e'], deco: 9, sky: 'storm'
+  },
+  { // 19 弓樓道：夕陽下的紅石長橋
+    abyss: ['#ffd6a0', '#d77a52', '#47203a'], fade: '70,30,50', fort: ['#a88a72', '#76604e', '#46382c'], deco: 7, sky: 'dusk',
+    deck: ['#d8b89a', '#b8977a'], curb: '#6a3a28', lane: 'rgba(255,230,190,.14)', seam: [90, 50, 30, 70], rail: '#c8432e', railDk: '#5a1a10',
+    arch: ['#b8402e', '#3a5a6a', '#4a3a3a', '#ffd35a'], islet: ['#c89a6a', '#8a5a3a', '#a86a4a', '#3a1a12'], foam: [255, 220, 180, 50], seamGap: 4, post: 'rpost'
+  },
+  { // 20 奇門陣：星空下的八卦陣地
+    abyss: ['#2a3a6a', '#1a1a46', '#080a20'], road: '#8e8aa6', roadFar: '#a6a2bc', band: 'rgba(10,10,40,.12)',
+    plaza: '#8a86a2', rim: '#4a4a7a', rimDk: '#24244a', cliffT: '#5a5a86', cliffB: '#181834', fade: '12,14,40',
+    fort: ['#5e5a7a', '#3a3854', '#1e1c30'], deco: 12, sky: 'void'
+  },
+  { // 21 追兵：雪夜裡的石橋
+    abyss: ['#3a4e72', '#1c2a4a', '#070c1c'], fade: '10,16,34', fort: ['#8a96aa', '#5a6476', '#343b48'], deco: 2, sky: 'sea',
+    deck: ['#c6ccd6', '#a8b0bc'], curb: '#3a4252', lane: 'rgba(255,255,255,.08)', seam: [40, 50, 70, 70], rail: '#98a2b3', railDk: '#2b303b',
+    arch: ['#4a5568', '#8a2a24', '#2f3a48', '#e8eef8'], islet: ['#f4fbff', '#a9c7dc', '#7e94aa', '#2e3c4e'], foam: [210, 230, 255, 46], seamGap: 3, post: 'rpostI', snow: true
+  },
+  { // 22 鐵壁：烽煙裡的鐵灰平原
+    abyss: ['#c8a088', '#7a4e3e', '#2a1612'], road: '#9c8c7a', roadFar: '#b2a492', band: 'rgba(40,20,10,.10)',
+    plaza: '#a49480', rim: '#6e5e4a', rimDk: '#3e3226', cliffT: '#7e6a58', cliffB: '#2e2018', fade: '50,24,18',
+    fort: ['#6a6460', '#45403c', '#262220'], deco: 7, sky: 'dusk'
+  },
+  { // 23 九頭蛇：毒沼上的黑石橋
+    abyss: ['#a6e07a', '#3a8a3a', '#0a2a12'], fade: '10,40,18', fort: ['#4a5a44', '#2e3a2a', '#141c12'], deco: 6, sky: 'river',
+    deck: ['#5a5560', '#45404a'], curb: '#1c1a20', lane: 'rgba(160,255,120,.10)', seam: [0, 0, 0, 90], rail: '#8ae04a', railDk: '#1e4a10',
+    arch: ['#2a2a30', '#3a6a2a', '#1c1c20', '#b8f070'], islet: ['#3a5a2a', '#1a2e14', '#3a3a30', '#0e140a'], foam: [170, 255, 120, 60], seamGap: 4, post: 'rpostG'
   }
 ];
 function mkRng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
